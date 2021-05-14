@@ -36,10 +36,19 @@
 #define TRUE 1
 #endif
 /* Defines and variables */
-#define FILE_HIGHWATER 1536
 #define PNG_FILE_BUF_SIZE 2048
-// max width (you can change it) of 320 x RGBA pixels
-#define MAX_BUFFERED_PIXELS (320*4)
+// Number of bytes to reserve for current and previous lines
+// Defaults to 640 32-bit pixels max width
+#define MAX_BUFFERED_PIXELS (640*4 + 1)
+// PNG filter type
+enum {
+    PNG_FILTER_NONE=0,
+    PNG_FILTER_SUB,
+    PNG_FILTER_UP,
+    PNG_FILTER_AVG,
+    PNG_FILTER_PAETH,
+    PNG_FILTER_COUNT
+};
 // source pixel type
 enum {
   PNG_PIXEL_GRAYSCALE=0,
@@ -48,13 +57,10 @@ enum {
     PNG_PIXEL_GRAY_ALPHA=4,
     PNG_PIXEL_TRUECOLOR_ALPHA=6
 };
-// Pixel types (defaults to little endian RGB565)
+// RGB565 endianness
 enum {
-    NATIVE_PIXELS = 0, // whatever is encoded in the file
-    RGB565_LITTLE_ENDIAN, // for sending to an LCD display
-    RGB565_BIG_ENDIAN,
-    EIGHT_BIT_PIXELS, // grayscale or palette colors
-    INVALID_PIXEL_TYPE
+    RGB565_LITTLE_ENDIAN = 0,
+    RGB565_BIG_ENDIAN
 };
 
 enum {
@@ -67,9 +73,21 @@ enum {
     PNG_SUCCESS = 0,
     PNG_INVALID_PARAMETER,
     PNG_DECODE_ERROR,
+    PNG_MEM_ERROR,
+    PNG_NO_BUFFER,
     PNG_UNSUPPORTED_FEATURE,
     PNG_INVALID_FILE
 };
+
+typedef struct png_draw_tag
+{
+    int x, y; // starting x,y of this line
+    int iWidth; // size of this line
+    int iBpp; // bit depth of the pixels (8, 24, or 32)
+    int iPixelType;
+    uint8_t *pPalette;
+    uint8_t *pPixels;
+} PNGDRAW;
 
 typedef struct buffered_bits
 {
@@ -86,19 +104,11 @@ typedef struct png_file_tag
   void * fHandle; // class pointer to File/SdFat or whatever you want
 } PNGFILE;
 
-typedef struct png_draw_tag
-{
-    int x, y; // upper left corner of current MCU
-    int iWidth, iHeight; // size of this MCU
-    int iBpp; // bit depth of the pixels
-    uint16_t *pPixels; // 16-bit pixels
-} PNGDRAW;
-
 // Callback function prototypes
 typedef int32_t (PNG_READ_CALLBACK)(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
 typedef int32_t (PNG_SEEK_CALLBACK)(PNGFILE *pFile, int32_t iPosition);
-typedef void (PNG_DRAW_CALLBACK)(PNGDRAW *pDraw);
 typedef void * (PNG_OPEN_CALLBACK)(const char *szFilename, int32_t *pFileSize);
+typedef void * (PNG_DRAW_CALLBACK)(PNGDRAW *);
 typedef void (PNG_CLOSE_CALLBACK)(void *pHandle);
 
 //
@@ -107,24 +117,25 @@ typedef void (PNG_CLOSE_CALLBACK)(void *pHandle);
 typedef struct png_image_tag
 {
     int iWidth, iHeight; // image size
-    int iXOffset, iYOffset; // placement on the display
-    uint8_t ucBpp, ucSrcPixelType;
-    uint8_t ucMemType, ucPixelType;
+    uint8_t ucBpp, ucPixelType;
+    uint8_t ucMemType;
+    uint8_t *pImage;
+    int iBpp; // bytes per pixel
+    int iPitch; // bytes per line
     uint32_t iTransparent; // transparent color index/value
     int iError;
-    int iOptions;
     int iVLCOff; // current VLC data offset
     int iVLCSize; // current quantity of data in the VLC buffer
     PNG_READ_CALLBACK *pfnRead;
     PNG_SEEK_CALLBACK *pfnSeek;
-    PNG_DRAW_CALLBACK *pfnDraw;
     PNG_OPEN_CALLBACK *pfnOpen;
+    PNG_DRAW_CALLBACK *pfnDraw;
     PNG_CLOSE_CALLBACK *pfnClose;
     PNGFILE PNGFile;
     BUFFERED_BITS bb;
     uint8_t ucPalette[1024];
-    uint8_t ucPixels[MAX_BUFFERED_PIXELS * 2]; // current and previous lines
-    uint8_t ucFileBuf[PNG_FILE_BUF_SIZE]; // holds temp data and pixel stack
+    uint8_t ucPixels[MAX_BUFFERED_PIXELS * 2];
+    uint8_t ucFileBuf[PNG_FILE_BUF_SIZE]; // holds temp file data
 } PNGIMAGE;
 
 #ifdef __cplusplus
@@ -139,20 +150,27 @@ class PNG
     int openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw);
     int open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALLBACK *pfnClose, PNG_READ_CALLBACK *pfnRead, PNG_SEEK_CALLBACK *pfnSeek, PNG_DRAW_CALLBACK *pfnDraw);
     void close();
-    int decode(int x, int y, int iOptions);
+    int decode();
     int getWidth();
     int getHeight();
     int getBpp();
+    uint8_t * getPalette();
+    int getPixelType();
     int getLastError();
-    void setPixelType(int iType); // defaults to little endian
+    int getBufferSize();
+    uint8_t *getBuffer();
+    void freeBuffer();
+    void setBuffer(uint8_t *pBuffer);
+    int allocBuffer();
+    void getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes);
 
   private:
     PNGIMAGE _png;
 };
 #else
 #define PNG_STATIC
-int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw);
-int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK *pfnDraw);
+int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize);
+int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename);
 int PNG_getWidth(PNGIMAGE *pPNG);
 int PNG_getHeight(PNGIMAGE *pPNG);
 int PNG_decode(PNGIMAGE *pPNG, int x, int y, int iOptions);

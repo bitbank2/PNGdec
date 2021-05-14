@@ -27,17 +27,9 @@ PNG_STATIC int PNGInit(PNGIMAGE *pPNG);
 PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage, int bExtractThumb);
 PNG_STATIC void PNGGetMoreData(PNGIMAGE *pPage);
 PNG_STATIC int DecodePNG(PNGIMAGE *pImage);
-
+PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes);
 // Include the C code which does the actual work
 #include "png.inl"
-
-void PNG::setPixelType(int iType)
-{
-    if (iType >= 0 && iType < INVALID_PIXEL_TYPE)
-        _png.ucPixelType = (uint8_t)iType;
-    else
-        _png.iError = PNG_INVALID_PARAMETER;
-} /* setPixelType() */
 
 //
 // Memory initialization
@@ -90,6 +82,36 @@ int PNG::getBpp()
     return (int)_png.ucBpp;
 } /* getBpp() */
 
+int PNG::getPixelType()
+{
+    return (int)_png.ucPixelType;
+} /* getPixelType() */
+uint8_t * PNG::getBuffer()
+{
+    return _png.pImage;
+} /* getBuffer() */
+
+uint8_t * PNG::getPalette()
+{
+    return _png.ucPalette;
+} /* getPalette() */
+void PNG::setBuffer(uint8_t *pBuffer)
+{
+    _png.pImage = pBuffer;
+} /* setBuffer() */
+int PNG::allocBuffer()
+{
+    _png.pImage = (uint8_t *)malloc((_png.iPitch + 1) * _png.iHeight);
+    if (_png.pImage == NULL)
+        return PNG_MEM_ERROR;
+    return PNG_SUCCESS;
+} /* allocBuffer() */
+
+void PNG::freeBuffer()
+{
+    if (_png.pImage != NULL)
+        free(_png.pImage);
+} /* freeBuffer() */
 //
 // File (SD/MMC) based initialization
 //
@@ -120,10 +142,12 @@ void PNG::close()
 // 1 = good result
 // 0 = error
 //
-int PNG::decode(int x, int y, int iOptions)
+int PNG::decode()
 {
-    _png.iXOffset = x;
-    _png.iYOffset = y;
-    _png.iOptions = iOptions;
     return DecodePNG(&_png);
 } /* decode() */
+
+void PNG::getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes)
+{
+    PNGRGB565(pDraw, pPixels, iEndiannes);
+} /* getLineAsRGB565() */

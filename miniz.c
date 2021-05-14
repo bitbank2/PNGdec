@@ -1190,7 +1190,9 @@ extern "C" {
 	{
 		tinfl_decompressor m_decomp;
 		mz_uint m_dict_ofs, m_dict_avail, m_first_call, m_has_flushed; int m_window_bits;
-		mz_uint8 m_dict[TINFL_LZ_DICT_SIZE];
+        // DEBUG!!
+//		mz_uint8 m_dict[TINFL_LZ_DICT_SIZE];
+        mz_uint8 m_dict[256];
 		tinfl_status m_last_status;
 	} inflate_state;
 
