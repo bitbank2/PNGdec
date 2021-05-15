@@ -6,9 +6,9 @@
 /* @(#) $Id$ */
 
 #include "zutil.h"
-#ifndef Z_SOLO
-#  include "gzguts.h"
-#endif
+//#ifndef Z_SOLO
+//#  include "gzguts.h"
+//#endif
 
 z_const char * const z_errmsg[10] = {
     (z_const char *)"need dictionary",     /* Z_NEED_DICT       2  */
