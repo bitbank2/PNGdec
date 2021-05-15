@@ -6,14 +6,15 @@ What is it?
 An 'embedded-friendly' (aka Arduino) PNG image decoding library<br>
 <br>
 
-Why did you write it?<br>
------------------------
-Starting in the late 80's, I was fascinated with computer graphics and code optimization. I wrote my own imaging codecs and not long after the PNG specification was ratified, I wrote my own version. I have used it in many projects and products over the years and recently decided that it could get a new lease on life as an embedded-friendly library for microcontrollers.<br>
+Why did you write it?
+---------------------
+Starting in the late 80's I wrote my own imaging codecs for the existing standards (CCITT G3/G4 was the first). I soon added GIF, JPEG and not long after that, the PNG specification was ratified. All of this code was "clean room" - written just from the specification. I used my imaging library in many projects and products over the years and recently decided that some of my codecs could get a new lease on life as open source, embedded-friendly libraries for microcontrollers.<br>
 <br>
+
 What's special about it?<br>
 ------------------------
-The PNG image specification was written at a time when computers had a lot of memory and conserving memory wasn't a priority. The memory allocated for decoding the compressed data (zlib) and for holding the uncompressed image can be quite a bit more than is available on modern microcontrollers. Three goals for this code are: easy to compile+use, use a minimal amount of RAM and be self-contained. One of the dependencies I like to remove when working on embedded software is malloc/free. When compiling on a system with tiny amount of RAM, heap memory management might not even exist.<br>
-<br>
+The PNG image specification was written at a time when computers had megabytes of RAM and conserving memory wasn't a big priority. The memory allocated for decoding the compressed data (zlib) and for holding the uncompressed image can be quite a bit more than is available on modern microcontrollers (usually measured in K bytes). Three goals for this project are: easy to compile+use on all embedded systems, use a minimal amount of RAM and be self-contained. One of the dependencies I like to remove when working on embedded software is malloc/free. When compiling on a system with a tiny amount of RAM, heap memory management might not even exist.<br>
+
 Feature summary:<br>
 ----------------<br>
 - Runs on any MCU with at least 48K of free RAM<br>
