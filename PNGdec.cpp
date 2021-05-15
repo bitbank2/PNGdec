@@ -3,12 +3,11 @@
 //
 // written by Larry Bank
 // bitbank@pobox.com
-// Arduino port started 8/2/2020
-// Original PNG code written 26+ years ago :)
-// The goal of this code is to decode baseline PNG images
-// using no more than 18K of RAM (if sent directly to an LCD display)
+// Arduino port started 5/3/2021
+// Original PNG code written 20+ years ago :)
+// The goal of this code is to decode PNG images on embedded systems
 //
-// Copyright 2020 BitBank Software, Inc. All Rights Reserved.
+// Copyright 2021 BitBank Software, Inc. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -25,7 +24,6 @@
 // forward references
 PNG_STATIC int PNGInit(PNGIMAGE *pPNG);
 PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage, int bExtractThumb);
-PNG_STATIC void PNGGetMoreData(PNGIMAGE *pPage);
 PNG_STATIC int DecodePNG(PNGIMAGE *pImage);
 PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes);
 // Include the C code which does the actual work

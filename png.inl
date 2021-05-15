@@ -1,23 +1,120 @@
 //
-// PNGdec implementation
+// PNG Decoder
 //
-//#include "miniz.h"
+// written by Larry Bank
+// bitbank@pobox.com
+// Arduino port started 5/3/2021
+// Original PNG code written 20+ years ago :)
+// The goal of this code is to decode PNG images on embedded systems
+//
+// Copyright 2021 BitBank Software, Inc. All Rights Reserved.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//    http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===========================================================================
+//
 #include "zlib.h"
 //
-// Convert a line of pixels into RGB565
+// Convert a line of native PNG pixels into RGB565
+// handles all standard pixel types
+// written for simplicity, not necessarily performance
 //
 PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes)
 {
-    int x;
+    int x, j;
     uint16_t usPixel, *pDest = pPixels;
-    uint8_t *s = pDraw->pPixels;
+    uint8_t c, *s = pDraw->pPixels;
     
     switch (pDraw->iPixelType) {
+        case 2: // truecolor
+            for (x=0; x<pDraw->iWidth; x++) {
+                usPixel = (s[2] >> 3); // blue
+                usPixel |= ((s[1] >> 2) << 5); // green
+                usPixel |= ((s[0] >> 3) << 11); // red
+                if (iEndiannes == RGB565_BIG_ENDIAN)
+                    usPixel = __builtin_bswap16(usPixel);
+                *pDest++ = usPixel;
+                s += 3;
+            }
+            break;
+        case 3: // palette color (can be 1/2/4 or 8 bits per pixel)
+            switch (pDraw->iBpp) {
+                case 8:
+                    for (x=0; x<pDraw->iWidth; x++) {
+                        c = *pPixels++;
+                        s = &pDraw->pPalette[c * 3];
+                        usPixel = (s[2] >> 3); // blue
+                        usPixel |= ((s[1] >> 2) << 5); // green
+                        usPixel |= ((s[0] >> 3) << 11); // red
+                        if (iEndiannes == RGB565_BIG_ENDIAN)
+                            usPixel = __builtin_bswap16(usPixel);
+                        *pDest++ = usPixel;
+                    }
+                    break;
+                case 4:
+                    for (x=0; x<pDraw->iWidth; x+=2) {
+                        c = *pPixels++;
+                        s = &pDraw->pPalette[(c >> 4) * 3];
+                        usPixel = (s[2] >> 3); // blue
+                        usPixel |= ((s[1] >> 2) << 5); // green
+                        usPixel |= ((s[0] >> 3) << 11); // red
+                        if (iEndiannes == RGB565_BIG_ENDIAN)
+                            usPixel = __builtin_bswap16(usPixel);
+                        *pDest++ = usPixel;
+                        s = &pDraw->pPalette[(c & 0xf) * 3];
+                        usPixel = (s[2] >> 3); // blue
+                        usPixel |= ((s[1] >> 2) << 5); // green
+                        usPixel |= ((s[0] >> 3) << 11); // red
+                        if (iEndiannes == RGB565_BIG_ENDIAN)
+                            usPixel = __builtin_bswap16(usPixel);
+                        *pDest++ = usPixel;
+                    }
+                    break;
+                case 2:
+                    for (x=0; x<pDraw->iWidth; x+=4) {
+                        c = *pPixels++;
+                        for (j=0; j<4; j++) { // work on pairs of bits
+                            s = &pDraw->pPalette[(c >> 6) * 3];
+                            usPixel = (s[2] >> 3); // blue
+                            usPixel |= ((s[1] >> 2) << 5); // green
+                            usPixel |= ((s[0] >> 3) << 11); // red
+                            if (iEndiannes == RGB565_BIG_ENDIAN)
+                                usPixel = __builtin_bswap16(usPixel);
+                            *pDest++ = usPixel;
+                            c <<= 2;
+                        }
+                    }
+                    break;
+                case 1:
+                    for (x=0; x<pDraw->iWidth; x+=4) {
+                        c = *pPixels++;
+                        for (j=0; j<8; j++) { // work on pairs of bits
+                            s = &pDraw->pPalette[(c >> 7) * 3];
+                            usPixel = (s[2] >> 3); // blue
+                            usPixel |= ((s[1] >> 2) << 5); // green
+                            usPixel |= ((s[0] >> 3) << 11); // red
+                            if (iEndiannes == RGB565_BIG_ENDIAN)
+                                usPixel = __builtin_bswap16(usPixel);
+                            *pDest++ = usPixel;
+                            c <<= 1;
+                        }
+                    }
+                    break;
+            } // switch on bits per pixel
+            break;
         case 6: // truecolor + alpha
             for (x=0; x<pDraw->iWidth; x++) {
-                usPixel = (s[0] >> 3); // blue
+                usPixel = (s[2] >> 3); // blue
                 usPixel |= ((s[1] >> 2) << 5); // green
-                usPixel |= ((s[2] >> 3) << 11); // red
+                usPixel |= ((s[0] >> 3) << 11); // red
+                if (iEndiannes == RGB565_BIG_ENDIAN)
+                    usPixel = __builtin_bswap16(usPixel);
                 *pDest++ = usPixel;
                 s += 4; // skip alpha
             }
@@ -90,29 +187,31 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
         switch (pPage->ucPixelType) {
             case PNG_PIXEL_GRAYSCALE: // grayscale
             case PNG_PIXEL_INDEXED: // indexed
-                pPage->iBpp = 1; // bytes per pixel
+                pPage->iPitch = (pPage->iWidth * pPage->ucBpp + 7)/8; // bytes per pixel
                 break;
             case PNG_PIXEL_TRUECOLOR: // truecolor
-                pPage->iBpp = 3;
+                pPage->iPitch = ((3 * pPage->ucBpp) * pPage->iWidth + 7)/8;
                 break;
             case PNG_PIXEL_GRAY_ALPHA: // grayscale + alpha
-                pPage->iBpp = 2;
+                pPage->iPitch = ((2 * pPage->ucBpp) * pPage->iWidth + 7)/8;
                 break;
             case PNG_PIXEL_TRUECOLOR_ALPHA: // truecolor + alpha
-                pPage->iBpp = 4;
+                pPage->iPitch = ((4 * pPage->ucBpp) * pPage->iWidth + 7)/8;
         } // switch
-        pPage->iPitch = pPage->iBpp * pPage->iWidth; // now we have bytes per line
     }
     return 0;
 } /* PNGParseInfo() */
 //
 // De-filter the current line of pixels
 //
-PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iBpp)
+PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iPitch)
 {
     uint8_t ucFilter = *pCurr++;
-    int x;
-    iWidth *= iBpp; // bytes per line
+    int x, iBpp;
+    if (iPitch <= iWidth)
+        iBpp = 1;
+    else
+        iBpp = iPitch / iWidth;
     
     pPrev++; // skip filter of previous line
     switch (ucFilter) { // switch on filter type
@@ -120,12 +219,12 @@ PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iBpp)
             // nothing to do :)
             break;
         case PNG_FILTER_SUB:
-            for (x=iBpp; x<iWidth; x++) {
+            for (x=iBpp; x<iPitch; x++) {
                 pCurr[x] += pCurr[x-iBpp];
             }
             break;
         case PNG_FILTER_UP:
-            for (x = 0; x < iWidth; x++) {
+            for (x = 0; x < iPitch; x++) {
                pCurr[x] += pPrev[x];
             }
             break;
@@ -134,7 +233,7 @@ PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iBpp)
                pCurr[x] = (pCurr[x] +
                   pPrev[x] / 2 );
             }
-            for (x = iBpp; x < iWidth; x++) {
+            for (x = iBpp; x < iPitch; x++) {
                pCurr[x] = pCurr[x] +
                   (pPrev[x] + pCurr[x-iBpp]) / 2;
             }
@@ -142,7 +241,7 @@ PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iBpp)
         case PNG_FILTER_PAETH:
             if (iBpp == 1) {
                 int a, c;
-                uint8_t *pEnd = &pCurr[iWidth];
+                uint8_t *pEnd = &pCurr[iPitch];
                 /* First pixel/byte */
                 c = *pPrev++;
                 a = *pCurr + c;
@@ -196,7 +295,7 @@ PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iBpp)
                    *pCurr++ = (uint8_t)a;
                 }
                 /* Remainder */
-                pEnd = pEnd + (iWidth - iBpp);
+                pEnd = pEnd + (iPitch - iBpp);
                 while (pCurr < pEnd)
                 {
                    int a, b, c, pa, pb, pc, p;
@@ -341,6 +440,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
                     d_stream.next_in  = &pPage->ucFileBuf[iOffset];
                     d_stream.avail_in = iBytesRead;
                     iLen -= iBytesRead;
+                    if (iLen < 0) iLen = 0;
                     iOffset += iBytesRead;
             //        if (iMarker == 0x66644154) // data starts at offset 4 in APNG frame data block
             //        {
@@ -355,14 +455,15 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
                         } // otherwise it could be a continuation of an unfinished line
                         err = inflate(&d_stream, Z_NO_FLUSH);
                         if ((err == Z_OK || err == Z_STREAM_END) && d_stream.avail_out == 0) {// successfully decoded line
-                            DeFilter(pCurr, pPrev, pPage->iWidth, pPage->iBpp);
+                            DeFilter(pCurr, pPrev, pPage->iWidth, pPage->iPitch);
                             if (pPage->pImage == NULL) { // no image buffer, send it line by line
                                 PNGDRAW pngd;
-                                pngd.iBpp = pPage->iBpp;
+                                pngd.iPitch = pPage->iPitch;
                                 pngd.iWidth = pPage->iWidth;
                                 pngd.pPalette = pPage->ucPalette;
                                 pngd.pPixels = pCurr+1;
                                 pngd.iPixelType = pPage->ucPixelType;
+                                pngd.iBpp = pPage->ucBpp;
                                 pngd.x = 0;
                                 pngd.y = y;
                                 (*pPage->pfnDraw)(&pngd);
@@ -385,7 +486,15 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
                         iLen = 0; // quit now
                         y = pPage->iHeight;
                         bDone = TRUE; // force loop to exit with error
+                    } else if (err == Z_BUF_ERROR) {
+                        y |= 0; // need more data
                     }
+                } // while (iLen)
+                if (y != pPage->iHeight && iFileOffset < pPage->PNGFile.iSize) {
+                    // need to read more IDAT chunks
+                    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
+                    iFileOffset += iBytesRead;
+                    iOffset = 0;
                 }
                 break;
                 //               case 0x69545874: //'iTXt'

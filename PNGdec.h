@@ -1,4 +1,12 @@
 //
+// PNG Decoder
+//
+// written by Larry Bank
+// bitbank@pobox.com
+// Arduino port started 5/3/2021
+// Original PNG code written 20+ years ago :)
+// The goal of this code is to decode PNG images on embedded systems
+//
 // Copyright 2021 BitBank Software, Inc. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -83,8 +91,9 @@ typedef struct png_draw_tag
 {
     int x, y; // starting x,y of this line
     int iWidth; // size of this line
-    int iBpp; // bit depth of the pixels (8, 24, or 32)
-    int iPixelType;
+    int iPitch; // bytes per line
+    int iPixelType; // PNG pixel type (0,2,3,4,6)
+    int iBpp; // bits per color stimulus
     uint8_t *pPalette;
     uint8_t *pPixels;
 } PNGDRAW;
@@ -108,7 +117,7 @@ typedef struct png_file_tag
 typedef int32_t (PNG_READ_CALLBACK)(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
 typedef int32_t (PNG_SEEK_CALLBACK)(PNGFILE *pFile, int32_t iPosition);
 typedef void * (PNG_OPEN_CALLBACK)(const char *szFilename, int32_t *pFileSize);
-typedef void * (PNG_DRAW_CALLBACK)(PNGDRAW *);
+typedef void (PNG_DRAW_CALLBACK)(PNGDRAW *);
 typedef void (PNG_CLOSE_CALLBACK)(void *pHandle);
 
 //
@@ -120,7 +129,6 @@ typedef struct png_image_tag
     uint8_t ucBpp, ucPixelType;
     uint8_t ucMemType;
     uint8_t *pImage;
-    int iBpp; // bytes per pixel
     int iPitch; // bytes per line
     uint32_t iTransparent; // transparent color index/value
     int iError;
