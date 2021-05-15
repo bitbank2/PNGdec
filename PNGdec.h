@@ -31,6 +31,9 @@
 #else
 #include <Arduino.h>
 #endif
+#include "zutil.h"
+#include "inftrees.h"
+#include "inflate.h"
 //
 // PNG Decoder
 // Written by Larry Bank
@@ -141,6 +144,7 @@ typedef struct png_image_tag
     PNG_CLOSE_CALLBACK *pfnClose;
     PNGFILE PNGFile;
     BUFFERED_BITS bb;
+    uint8_t ucZLIB[32768 + sizeof(inflate_state)]; // put this here to avoid needing malloc/free
     uint8_t ucPalette[1024];
     uint8_t ucPixels[MAX_BUFFERED_PIXELS * 2];
     uint8_t ucFileBuf[PNG_FILE_BUF_SIZE]; // holds temp file data
@@ -167,9 +171,7 @@ class PNG
     int getLastError();
     int getBufferSize();
     uint8_t *getBuffer();
-    void freeBuffer();
     void setBuffer(uint8_t *pBuffer);
-    int allocBuffer();
     void getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes);
 
   private:

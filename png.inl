@@ -346,6 +346,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
     uint8_t *tmp, *pCurr, *pPrev;
     z_stream d_stream; /* decompression stream */
     uint8_t *s = pPage->ucFileBuf;
+    struct inflate_state *state;
     
     // Either the image buffer must be allocated or a draw callback must be set before entering
     if (pPage->pImage == NULL && pPage->pfnDraw == NULL) {
@@ -361,8 +362,10 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
     d_stream.zalloc = (alloc_func)0;
     d_stream.zfree = (free_func)0;
     d_stream.opaque = (voidpf)0;
-//    d_stream.next_out = cOutput;
-//    d_stream.avail_out = iUncompressedSize;
+    // Insert the memory pointer here to avoid having to use malloc() inside zlib
+    state = (struct inflate_state FAR *)pPage->ucZLIB;
+    d_stream.state = (struct internal_state FAR *)state;
+    state->window = &pPage->ucZLIB[sizeof(inflate_state)]; // point to 32k dictionary buffer
     err = inflateInit(&d_stream);
 //    if (inpage->cCompression == PIL_COMP_IPHONE_FLATE)
 //        err = mz_inflateInit2(&d_stream, -15); // undocumented option which ignores header and crcs

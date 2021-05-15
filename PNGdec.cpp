@@ -23,7 +23,6 @@
 
 // forward references
 PNG_STATIC int PNGInit(PNGIMAGE *pPNG);
-PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage, int bExtractThumb);
 PNG_STATIC int DecodePNG(PNGIMAGE *pImage);
 PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes);
 // Include the C code which does the actual work
@@ -84,32 +83,25 @@ int PNG::getPixelType()
 {
     return (int)_png.ucPixelType;
 } /* getPixelType() */
+void PNG::setBuffer(uint8_t *pBuffer)
+{
+    _png.pImage = pBuffer;
+} /* setBuffer() */
 uint8_t * PNG::getBuffer()
 {
     return _png.pImage;
 } /* getBuffer() */
 
+int PNG::getBufferSize()
+{
+    return _png.iHeight * _png.iPitch;
+} /* getBufferSize() */
+
 uint8_t * PNG::getPalette()
 {
     return _png.ucPalette;
 } /* getPalette() */
-void PNG::setBuffer(uint8_t *pBuffer)
-{
-    _png.pImage = pBuffer;
-} /* setBuffer() */
-int PNG::allocBuffer()
-{
-    _png.pImage = (uint8_t *)malloc((_png.iPitch + 1) * _png.iHeight);
-    if (_png.pImage == NULL)
-        return PNG_MEM_ERROR;
-    return PNG_SUCCESS;
-} /* allocBuffer() */
 
-void PNG::freeBuffer()
-{
-    if (_png.pImage != NULL)
-        free(_png.pImage);
-} /* freeBuffer() */
 //
 // File (SD/MMC) based initialization
 //
