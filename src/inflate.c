@@ -624,9 +624,10 @@ unsigned copy;
    will return Z_BUF_ERROR if it has not reached the end of the stream.
  */
 
-int ZEXPORT inflate(strm, flush)
+int ZEXPORT inflate(strm, flush, check_crc)
 z_streamp strm;
 int flush;
+int check_crc;
 {
     struct inflate_state FAR *state;
     z_const unsigned char FAR *next;    /* next input */
@@ -703,7 +704,9 @@ int flush;
             }
             state->dmax = 1U << len;
             Tracev((stderr, "inflate:   zlib header ok\n"));
-            strm->adler = state->check = adler32(0L, Z_NULL, 0);
+            if (check_crc) {
+                strm->adler = state->check = adler32(0L, Z_NULL, 0);
+            }
             state->mode = hold & 0x200 ? DICTID : TYPE;
             INITBITS();
             break;
@@ -1205,18 +1208,22 @@ int flush;
                 out -= left;
                 strm->total_out += out;
                 state->total += out;
-                if ((state->wrap & 4) && out)
-                    strm->adler = state->check =
-                        UPDATE(state->check, put - out, out);
+                if (check_crc) {
+                    if ((state->wrap & 4) && out)
+                        strm->adler = state->check =
+                            UPDATE(state->check, put - out, out);
+                }
                 out = left;
-                if ((state->wrap & 4) && (
+                if (check_crc) {
+                    if ((state->wrap & 4) && (
 #ifdef GUNZIP
-                     state->flags ? hold :
+                                              state->flags ? hold :
 #endif
-                     ZSWAP32(hold)) != state->check) {
-                    strm->msg = (char *)"incorrect data check";
-                    state->mode = BAD;
-                    break;
+                                              ZSWAP32(hold)) != state->check) {
+                        strm->msg = (char *)"incorrect data check";
+                        state->mode = BAD;
+                        break;
+                    }
                 }
                 INITBITS();
                 Tracev((stderr, "inflate:   check matches trailer\n"));
@@ -1268,9 +1275,11 @@ int flush;
     strm->total_in += in;
     strm->total_out += out;
     state->total += out;
-    if ((state->wrap & 4) && out)
-        strm->adler = state->check =
-            UPDATE(state->check, strm->next_out - out, out);
+    if (check_crc) {
+        if ((state->wrap & 4) && out)
+            strm->adler = state->check =
+                UPDATE(state->check, strm->next_out - out, out);
+    }
     strm->data_type = (int)state->bits + (state->last ? 64 : 0) +
                       (state->mode == TYPE ? 128 : 0) +
                       (state->mode == LEN_ || state->mode == COPY_ ? 256 : 0);

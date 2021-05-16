@@ -23,6 +23,7 @@ Feature summary:<br>
 - Decode an image to a user supplied buffer (no callback needed)<br>
 - Supports all standard options<br>
 - Function provided to turn any pixel format into RGB565 for LCD displays<br>
+- Optionally disable zlib's internal CRC check - improves speed by 20-30%
 - Arduino-style C++ library class<br>
 - Can by built as straight C as well<br>
 <br>

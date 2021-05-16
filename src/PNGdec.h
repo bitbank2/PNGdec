@@ -60,6 +60,12 @@ enum {
     PNG_FILTER_PAETH,
     PNG_FILTER_COUNT
 };
+
+// decode options
+enum {
+    PNG_CHECK_CRC = 1,
+};
+
 // source pixel type
 enum {
   PNG_PIXEL_GRAYSCALE=0,
@@ -92,11 +98,12 @@ enum {
 
 typedef struct png_draw_tag
 {
-    int x, y; // starting x,y of this line
+    int y; // starting x,y of this line
     int iWidth; // size of this line
     int iPitch; // bytes per line
     int iPixelType; // PNG pixel type (0,2,3,4,6)
     int iBpp; // bits per color stimulus
+    void *pUser; // user supplied pointer
     uint8_t *pPalette;
     uint8_t *pPixels;
 } PNGDRAW;
@@ -133,17 +140,16 @@ typedef struct png_image_tag
     uint8_t ucMemType;
     uint8_t *pImage;
     int iPitch; // bytes per line
+    int iHasAlpha;
+    int iInterlaced;
     uint32_t iTransparent; // transparent color index/value
     int iError;
-    int iVLCOff; // current VLC data offset
-    int iVLCSize; // current quantity of data in the VLC buffer
     PNG_READ_CALLBACK *pfnRead;
     PNG_SEEK_CALLBACK *pfnSeek;
     PNG_OPEN_CALLBACK *pfnOpen;
     PNG_DRAW_CALLBACK *pfnDraw;
     PNG_CLOSE_CALLBACK *pfnClose;
     PNGFILE PNGFile;
-    BUFFERED_BITS bb;
     uint8_t ucZLIB[32768 + sizeof(inflate_state)]; // put this here to avoid needing malloc/free
     uint8_t ucPalette[1024];
     uint8_t ucPixels[MAX_BUFFERED_PIXELS * 2];
@@ -162,17 +168,20 @@ class PNG
     int openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw);
     int open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALLBACK *pfnClose, PNG_READ_CALLBACK *pfnRead, PNG_SEEK_CALLBACK *pfnSeek, PNG_DRAW_CALLBACK *pfnDraw);
     void close();
-    int decode();
+    int decode(void *pUser, int iOptions);
     int getWidth();
     int getHeight();
     int getBpp();
+    int hasAlpha();
+    uint32_t getTransparentColor();
+    int isInterlaced();
     uint8_t * getPalette();
     int getPixelType();
     int getLastError();
     int getBufferSize();
     uint8_t *getBuffer();
     void setBuffer(uint8_t *pBuffer);
-    void getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes);
+    void getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndianness, uint32_t u32Bkgd);
 
   private:
     PNGIMAGE _png;
@@ -183,7 +192,7 @@ int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize);
 int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename);
 int PNG_getWidth(PNGIMAGE *pPNG);
 int PNG_getHeight(PNGIMAGE *pPNG);
-int PNG_decode(PNGIMAGE *pPNG, int x, int y, int iOptions);
+int PNG_decode(PNGIMAGE *pPNG, void *pUser, int iOptions);
 void PNG_close(PNGIMAGE *pPNG);
 int PNG_getLastError(PNGIMAGE *pPNG);
 int PNG_getBpp(PNGIMAGE *pPNG);

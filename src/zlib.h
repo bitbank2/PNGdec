@@ -397,7 +397,7 @@ ZEXTERN int ZEXPORT inflateInit OF((z_streamp strm));
 */
 
 
-ZEXTERN int ZEXPORT inflate OF((z_streamp strm, int flush));
+ZEXTERN int ZEXPORT inflate OF((z_streamp strm, int flush, int check_crc));
 /*
     inflate decompresses as much data as possible, and stops when the input
   buffer becomes empty or the output buffer becomes full.  It may introduce

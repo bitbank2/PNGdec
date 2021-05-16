@@ -23,8 +23,7 @@
 
 // forward references
 PNG_STATIC int PNGInit(PNGIMAGE *pPNG);
-PNG_STATIC int DecodePNG(PNGIMAGE *pImage);
-PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes);
+PNG_STATIC int DecodePNG(PNGIMAGE *pImage, void *pUser, int iOptions);
 // Include the C code which does the actual work
 #include "png.inl"
 
@@ -68,6 +67,21 @@ int PNG::getWidth()
 {
     return _png.iWidth;
 } /* getWidth() */
+
+uint32_t PNG::getTransparentColor()
+{
+    return _png.iTransparent;
+} /* getTransparentColor() */
+
+int PNG::hasAlpha()
+{
+    return _png.iHasAlpha;
+} /* hasAlpha() */
+
+int PNG::isInterlaced()
+{
+    return _png.iInterlaced;
+} /* isInterlaced() */
 
 int PNG::getHeight()
 {
@@ -132,12 +146,12 @@ void PNG::close()
 // 1 = good result
 // 0 = error
 //
-int PNG::decode()
+int PNG::decode(void *pUser, int iOptions)
 {
-    return DecodePNG(&_png);
+    return DecodePNG(&_png, pUser, iOptions);
 } /* decode() */
 
-void PNG::getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes)
+void PNG::getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndianness, uint32_t u32Bkgd)
 {
-    PNGRGB565(pDraw, pPixels, iEndiannes);
+    PNGRGB565(pDraw, pPixels, iEndianness, u32Bkgd, hasAlpha());
 } /* getLineAsRGB565() */

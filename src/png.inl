@@ -25,14 +25,25 @@
 // handles all standard pixel types
 // written for simplicity, not necessarily performance
 //
-PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes)
+PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uint32_t u32Bkgd, int iHasAlpha)
 {
     int x, j;
     uint16_t usPixel, *pDest = pPixels;
     uint8_t c, *s = pDraw->pPixels;
     
     switch (pDraw->iPixelType) {
-        case 2: // truecolor
+        case PNG_PIXEL_GRAYSCALE:
+            for (x=0; x<pDraw->iWidth; x++) {
+                c = *s++;
+                usPixel = (c >> 3); // blue
+                usPixel |= ((c >> 2) << 5); // green
+                usPixel |= ((c >> 3) << 11); // red
+                if (iEndiannes == RGB565_BIG_ENDIAN)
+                    usPixel = __builtin_bswap16(usPixel);
+                *pDest++ = usPixel;
+            }
+            break;
+        case PNG_PIXEL_TRUECOLOR:
             for (x=0; x<pDraw->iWidth; x++) {
                 usPixel = (s[2] >> 3); // blue
                 usPixel |= ((s[1] >> 2) << 5); // green
@@ -43,7 +54,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes)
                 s += 3;
             }
             break;
-        case 3: // palette color (can be 1/2/4 or 8 bits per pixel)
+        case PNG_PIXEL_INDEXED: // palette color (can be 1/2/4 or 8 bits per pixel)
             switch (pDraw->iBpp) {
                 case 8:
                     for (x=0; x<pDraw->iWidth; x++) {
@@ -108,15 +119,46 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes)
                     break;
             } // switch on bits per pixel
             break;
-        case 6: // truecolor + alpha
-            for (x=0; x<pDraw->iWidth; x++) {
-                usPixel = (s[2] >> 3); // blue
-                usPixel |= ((s[1] >> 2) << 5); // green
-                usPixel |= ((s[0] >> 3) << 11); // red
-                if (iEndiannes == RGB565_BIG_ENDIAN)
-                    usPixel = __builtin_bswap16(usPixel);
-                *pDest++ = usPixel;
-                s += 4; // skip alpha
+        case PNG_PIXEL_TRUECOLOR_ALPHA: // truecolor + alpha
+            if (u32Bkgd != 0xffffffff) { // user wants to blend it with a background color
+                uint32_t r, g, b, a;
+                uint32_t b_r, b_g, b_b;
+                b_r = u32Bkgd & 0xff; b_g = (u32Bkgd & 0xff00) >> 8;
+                b_b = (u32Bkgd >> 16) & 0xff;
+                uint16_t u16Clr = (u32Bkgd & 0xf8) << 8;
+                u16Clr |= ((u32Bkgd & 0xfc00) >> 5);
+                u16Clr |= ((u32Bkgd & 0xf80000) >> 19);
+                for (x=0; x<pDraw->iWidth; x++) {
+                    r = s[0]; g = s[1]; b = s[2]; a = s[3];
+                    if (a == 0)
+                        usPixel = u16Clr;
+                    else if (a == 255) { // fully opaque
+                        usPixel = (s[2] >> 3); // blue
+                        usPixel |= ((s[1] >> 2) << 5); // green
+                        usPixel |= ((s[0] >> 3) << 11); // red
+                    } else { // mix the colors
+                        r = ((r * a) + (b_r * (255-a))) >> 8;
+                        g = ((g * a) + (b_g * (255-a))) >> 8;
+                        b = ((b * a) + (b_b * (255-a))) >> 8;
+                        usPixel = (b >> 3); // blue
+                        usPixel |= ((g >> 2) << 5); // green
+                        usPixel |= ((r >> 3) << 11); // red
+                    }
+                    if (iEndiannes == RGB565_BIG_ENDIAN)
+                        usPixel = __builtin_bswap16(usPixel);
+                    *pDest++ = usPixel;
+                    s += 4; // skip alpha
+                }
+            } else { // ignore alpha
+                for (x=0; x<pDraw->iWidth; x++) {
+                    usPixel = (s[2] >> 3); // blue
+                    usPixel |= ((s[1] >> 2) << 5); // green
+                    usPixel |= ((s[0] >> 3) << 11); // red
+                    if (iEndiannes == RGB565_BIG_ENDIAN)
+                        usPixel = __builtin_bswap16(usPixel);
+                    *pDest++ = usPixel;
+                    s += 4; // skip alpha
+                }
             }
             break;
     }
@@ -165,6 +207,7 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
     uint8_t *s = pPage->ucFileBuf;
     int iBytesRead;
     
+    pPage->iHasAlpha = pPage->iInterlaced = 0;
     // Read a few bytes to just parse the size/pixel info
     iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, 32);
     if (iBytesRead < 32) { // a PNG file this tiny? probably bad
@@ -181,7 +224,8 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
         pPage->iHeight = MOTOLONG(&s[20]);
         pPage->ucBpp = s[24]; // bits per pixel
         pPage->ucPixelType = s[25]; // pixel type
-        if (s[28] || pPage->ucBpp > 8) // interlace flag & 16-bit pixels are not supported (yet)
+        pPage->iInterlaced = s[28];
+        if (pPage->iInterlaced || pPage->ucBpp > 8) // 16-bit pixels are not supported (yet)
             pPage->iError = PNG_UNSUPPORTED_FEATURE;
         // calculate the number of bytes per line of pixels
         switch (pPage->ucPixelType) {
@@ -194,9 +238,11 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
                 break;
             case PNG_PIXEL_GRAY_ALPHA: // grayscale + alpha
                 pPage->iPitch = ((2 * pPage->ucBpp) * pPage->iWidth + 7)/8;
+                pPage->iHasAlpha = 1;
                 break;
             case PNG_PIXEL_TRUECOLOR_ALPHA: // truecolor + alpha
                 pPage->iPitch = ((4 * pPage->ucBpp) * pPage->iWidth + 7)/8;
+                pPage->iHasAlpha = 1;
         } // switch
     }
     return 0;
@@ -338,7 +384,7 @@ PNG_STATIC int PNGInit(PNGIMAGE *pPNG)
     return PNGParseInfo(pPNG); // gather info for image
 } /* PNGInit() */
 
-PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
+PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 {
     int err, y, iLen=0;
     int bDone, iOffset, iFileOffset, iBytesRead;
@@ -355,7 +401,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
     }
     pCurr = pPage->ucPixels;
     pPrev = &pPage->ucPixels[MAX_BUFFERED_PIXELS];
-    
+    pPage->iError = PNG_SUCCESS;
     // Start decoding the image
     bDone = FALSE;
     // inflate the image data
@@ -416,16 +462,19 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
                 if (pPage->ucPixelType == PNG_PIXEL_INDEXED) // if palette exists
                 {
                     memcpy(&pPage->ucPalette[768], &s[iOffset], iLen);
+                    pPage->iHasAlpha = 1;
                 }
                 else if (iLen == 2) // for grayscale images
                 {
                     pPage->iTransparent = s[iOffset + 1]; // lower part of 2-byte value is transparent color index
+                    pPage->iHasAlpha = 1;
                 }
                 else if (iLen == 6) // transparent color for 24-bpp image
                 {
                     pPage->iTransparent = s[iOffset + 5]; // lower part of 2-byte value is transparent color value
                     pPage->iTransparent |= (s[iOffset + 3] << 8);
                     pPage->iTransparent |= (s[iOffset + 1] << 16);
+                    pPage->iHasAlpha = 1;
                 }
                 break;
             case 0x49444154: //'IDAT' image data block
@@ -456,18 +505,18 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
                             d_stream.avail_out = pPage->iPitch+1;
                             d_stream.next_out = pCurr;
                         } // otherwise it could be a continuation of an unfinished line
-                        err = inflate(&d_stream, Z_NO_FLUSH);
+                        err = inflate(&d_stream, Z_NO_FLUSH, iOptions & PNG_CHECK_CRC);
                         if ((err == Z_OK || err == Z_STREAM_END) && d_stream.avail_out == 0) {// successfully decoded line
                             DeFilter(pCurr, pPrev, pPage->iWidth, pPage->iPitch);
                             if (pPage->pImage == NULL) { // no image buffer, send it line by line
                                 PNGDRAW pngd;
+                                pngd.pUser = pUser;
                                 pngd.iPitch = pPage->iPitch;
                                 pngd.iWidth = pPage->iWidth;
                                 pngd.pPalette = pPage->ucPalette;
                                 pngd.pPixels = pCurr+1;
                                 pngd.iPixelType = pPage->ucPixelType;
                                 pngd.iBpp = pPage->ucBpp;
-                                pngd.x = 0;
                                 pngd.y = y;
                                 (*pPage->pfnDraw)(&pngd);
                             } else {
@@ -488,6 +537,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
                     } else  if (err == Z_DATA_ERROR || err == Z_STREAM_ERROR) {
                         iLen = 0; // quit now
                         y = pPage->iHeight;
+                        pPage->iError = PNG_DECODE_ERROR;
                         bDone = TRUE; // force loop to exit with error
                     } else if (err == Z_BUF_ERROR) {
                         y |= 0; // need more data
@@ -546,5 +596,5 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage)
 //        }  while (y < pPage->iHeight && d_stream.avail_out == 0);
     } // while y < height
     err = inflateEnd(&d_stream);
-    return 0;
+    return pPage->iError;
 } /* DecodePNG() */
