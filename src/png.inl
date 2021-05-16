@@ -29,7 +29,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
 {
     int x, j;
     uint16_t usPixel, *pDest = pPixels;
-    uint8_t c, *s = pDraw->pPixels;
+    uint8_t c, *pPal, *s = pDraw->pPixels;
     
     switch (pDraw->iPixelType) {
         case PNG_PIXEL_GRAYSCALE:
@@ -58,11 +58,11 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
             switch (pDraw->iBpp) {
                 case 8:
                     for (x=0; x<pDraw->iWidth; x++) {
-                        c = *pPixels++;
-                        s = &pDraw->pPalette[c * 3];
-                        usPixel = (s[2] >> 3); // blue
-                        usPixel |= ((s[1] >> 2) << 5); // green
-                        usPixel |= ((s[0] >> 3) << 11); // red
+                        c = *s++;
+                        pPal = &pDraw->pPalette[c * 3];
+                        usPixel = (pPal[2] >> 3); // blue
+                        usPixel |= ((pPal[1] >> 2) << 5); // green
+                        usPixel |= ((pPal[0] >> 3) << 11); // red
                         if (iEndiannes == RGB565_BIG_ENDIAN)
                             usPixel = __builtin_bswap16(usPixel);
                         *pDest++ = usPixel;
@@ -70,18 +70,18 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     break;
                 case 4:
                     for (x=0; x<pDraw->iWidth; x+=2) {
-                        c = *pPixels++;
-                        s = &pDraw->pPalette[(c >> 4) * 3];
-                        usPixel = (s[2] >> 3); // blue
-                        usPixel |= ((s[1] >> 2) << 5); // green
-                        usPixel |= ((s[0] >> 3) << 11); // red
+                        c = *s++;
+                        pPal = &pDraw->pPalette[(c >> 4) * 3];
+                        usPixel = (pPal[2] >> 3); // blue
+                        usPixel |= ((pPal[1] >> 2) << 5); // green
+                        usPixel |= ((pPal[0] >> 3) << 11); // red
                         if (iEndiannes == RGB565_BIG_ENDIAN)
                             usPixel = __builtin_bswap16(usPixel);
                         *pDest++ = usPixel;
-                        s = &pDraw->pPalette[(c & 0xf) * 3];
-                        usPixel = (s[2] >> 3); // blue
-                        usPixel |= ((s[1] >> 2) << 5); // green
-                        usPixel |= ((s[0] >> 3) << 11); // red
+                        pPal = &pDraw->pPalette[(c & 0xf) * 3];
+                        usPixel = (pPal[2] >> 3); // blue
+                        usPixel |= ((pPal[1] >> 2) << 5); // green
+                        usPixel |= ((pPal[0] >> 3) << 11); // red
                         if (iEndiannes == RGB565_BIG_ENDIAN)
                             usPixel = __builtin_bswap16(usPixel);
                         *pDest++ = usPixel;
@@ -89,12 +89,12 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     break;
                 case 2:
                     for (x=0; x<pDraw->iWidth; x+=4) {
-                        c = *pPixels++;
+                        c = *s++;
                         for (j=0; j<4; j++) { // work on pairs of bits
-                            s = &pDraw->pPalette[(c >> 6) * 3];
-                            usPixel = (s[2] >> 3); // blue
-                            usPixel |= ((s[1] >> 2) << 5); // green
-                            usPixel |= ((s[0] >> 3) << 11); // red
+                            pPal = &pDraw->pPalette[(c >> 6) * 3];
+                            usPixel = (pPal[2] >> 3); // blue
+                            usPixel |= ((pPal[1] >> 2) << 5); // green
+                            usPixel |= ((pPal[0] >> 3) << 11); // red
                             if (iEndiannes == RGB565_BIG_ENDIAN)
                                 usPixel = __builtin_bswap16(usPixel);
                             *pDest++ = usPixel;
@@ -104,12 +104,12 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     break;
                 case 1:
                     for (x=0; x<pDraw->iWidth; x+=4) {
-                        c = *pPixels++;
+                        c = *s++;
                         for (j=0; j<8; j++) { // work on pairs of bits
-                            s = &pDraw->pPalette[(c >> 7) * 3];
-                            usPixel = (s[2] >> 3); // blue
-                            usPixel |= ((s[1] >> 2) << 5); // green
-                            usPixel |= ((s[0] >> 3) << 11); // red
+                            pPal = &pDraw->pPalette[(c >> 7) * 3];
+                            usPixel = (pPal[2] >> 3); // blue
+                            usPixel |= ((pPal[1] >> 2) << 5); // green
+                            usPixel |= ((pPal[0] >> 3) << 11); // red
                             if (iEndiannes == RGB565_BIG_ENDIAN)
                                 usPixel = __builtin_bswap16(usPixel);
                             *pDest++ = usPixel;

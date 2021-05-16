@@ -58,6 +58,24 @@ int PNG::openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
     return PNGInit(&_png);
 } /* openRAM() */
 
+//
+// File (SD/MMC) based initialization
+//
+int PNG::open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALLBACK *pfnClose, PNG_READ_CALLBACK *pfnRead, PNG_SEEK_CALLBACK *pfnSeek, PNG_DRAW_CALLBACK *pfnDraw)
+{
+    memset(&_png, 0, sizeof(PNGIMAGE));
+    _png.pfnRead = pfnRead;
+    _png.pfnSeek = pfnSeek;
+    _png.pfnDraw = pfnDraw;
+    _png.pfnOpen = pfnOpen;
+    _png.pfnClose = pfnClose;
+    _png.PNGFile.fHandle = (*pfnOpen)(szFilename, &_png.PNGFile.iSize);
+    if (_png.PNGFile.fHandle == NULL)
+       return 0;
+    return PNGInit(&_png);
+
+} /* open() */
+
 int PNG::getLastError()
 {
     return _png.iError;
@@ -115,24 +133,6 @@ uint8_t * PNG::getPalette()
 {
     return _png.ucPalette;
 } /* getPalette() */
-
-//
-// File (SD/MMC) based initialization
-//
-int PNG::open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALLBACK *pfnClose, PNG_READ_CALLBACK *pfnRead, PNG_SEEK_CALLBACK *pfnSeek, PNG_DRAW_CALLBACK *pfnDraw)
-{
-    memset(&_png, 0, sizeof(PNGIMAGE));
-    _png.pfnRead = pfnRead;
-    _png.pfnSeek = pfnSeek;
-    _png.pfnDraw = pfnDraw;
-    _png.pfnOpen = pfnOpen;
-    _png.pfnClose = pfnClose;
-    _png.PNGFile.fHandle = (*pfnOpen)(szFilename, &_png.PNGFile.iSize);
-    if (_png.PNGFile.fHandle == NULL)
-       return 0;
-    return PNGInit(&_png);
-
-} /* open() */
 
 void PNG::close()
 {
