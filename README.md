@@ -21,9 +21,9 @@ Feature summary:<br>
 - No external dependencies (including malloc/free)<br>
 - Decode an image line by line with a callback function<br>
 - Decode an image to a user supplied buffer (no callback needed)<br>
-- Supports all standard options<br>
+- Supports all standard options except interlacing (too much RAM needed)<br>
 - Function provided to turn any pixel format into RGB565 for LCD displays<br>
-- Optionally disable zlib's internal CRC check - improves speed by 20-30%
-- Arduino-style C++ library class<br>
+- Optionally disable zlib's internal CRC check - improves speed by 10-30%
+- Arduino-style C++ library class with simple API<br>
 - Can by built as straight C as well<br>
 <br>
