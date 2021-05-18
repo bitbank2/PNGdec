@@ -236,16 +236,23 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                             from = out - dist;  /* rest from output */
                         }
                     }
-                    while (len > 2) {
-                        *out++ = *from++;
-                        *out++ = *from++;
-                        *out++ = *from++;
-                        len -= 3;
-                    }
-                    if (len) {
-                        *out++ = *from++;
-                        if (len > 1)
+                    if (len > 50 && len < dist) {
+                        memmove(out, from, len);
+                        out += len;
+                        from += len;
+                        len = 0;
+                    } else {
+                        while (len > 2) {
                             *out++ = *from++;
+                            *out++ = *from++;
+                            *out++ = *from++;
+                            len -= 3;
+                        }
+                        if (len) {
+                            *out++ = *from++;
+                            if (len > 1)
+                                *out++ = *from++;
+                        }
                     }
                 }
                 else {
@@ -253,8 +260,14 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                     // Larry Bank added -
                     // For relatively large runs, it's faster to let memmove
                     // use whatever code is efficient on the target platform
-                    if (len > 50) {
+                    if (dist == 1) { // frequent case for images
+                        memset(out, *from, len);
+                        out += len;
+                    } else if (len > 50 && len < dist) {
                         memmove(out, from, len);
+                        out += len;
+                        from += len;
+                        len = 0;
                     } else {
                         do {                        /* minimum length is three */
                             *out++ = *from++;
