@@ -43,7 +43,9 @@ int PNG::openRAM(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
     _png.PNGFile.pData = pData;
     return PNGInit(&_png);
 } /* openRAM() */
-
+//
+// It's necessary to separate out a FLASH version on Harvard architecture machines
+//
 int PNG::openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
 {
     memset(&_png, 0, sizeof(PNGIMAGE));
@@ -75,65 +77,105 @@ int PNG::open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALL
     return PNGInit(&_png);
 
 } /* open() */
-
+//
+// return the last error (if any)
+//
 int PNG::getLastError()
 {
     return _png.iError;
 } /* getLastError() */
-
+//
+// Get the width of the image in pixels
+// can be called after opening the file (before decoding)
+//
 int PNG::getWidth()
 {
     return _png.iWidth;
 } /* getWidth() */
-
+//
+// Get the height of the image in pixels
+// can be called after opening the file (before decoding)
+//
+int PNG::getHeight()
+{
+    return _png.iHeight;
+} /* getHeight() */
+//
+// For truecolor and palette images, it's possible to have a single
+// transparent color defined. This call will return it if defined
+//
 uint32_t PNG::getTransparentColor()
 {
     return _png.iTransparent;
 } /* getTransparentColor() */
-
+//
+// Alpha information can be per pixel, per color or a single color
+// depending on the PNG pixel type of the image
+// This call simply tells you if there is alpha for the current pixel type
+//
 int PNG::hasAlpha()
 {
     return _png.iHasAlpha;
 } /* hasAlpha() */
-
+//
+// Returns true or false for the use of Adam7 interlacing
+// This option is not supported by the decoder, but after opening the image
+// you can determine if it's set
+//
 int PNG::isInterlaced()
 {
     return _png.iInterlaced;
 } /* isInterlaced() */
 
-int PNG::getHeight()
-{
-    return _png.iHeight;
-} /* getHeight() */
-
+//
+// Returns the number of bits per color stimulus
+// values of 1,2,4, and 8 are supported
+//
 int PNG::getBpp()
 {
     return (int)_png.ucBpp;
 } /* getBpp() */
-
+//
+// Returns the PNG pixel type (see enum in PNGdec.h)
+//
 int PNG::getPixelType()
 {
     return (int)_png.ucPixelType;
 } /* getPixelType() */
+//
+// Set the image buffer to memory managed by the caller
+// If set, decode() will not use the PNGDRAW callback function
+// and instead write the image into this buffer in one shot
+//
 void PNG::setBuffer(uint8_t *pBuffer)
 {
     _png.pImage = pBuffer;
 } /* setBuffer() */
+//
+// Returns the previously set image buffer or NULL if there is none
+//
 uint8_t * PNG::getBuffer()
 {
     return _png.pImage;
 } /* getBuffer() */
-
+//
+// Returns the size in bytes of the buffer needed to hold the uncompressed image
+//
 int PNG::getBufferSize()
 {
     return _png.iHeight * _png.iPitch;
 } /* getBufferSize() */
-
+//
+// Returns a pointer to the palette
+// If there is alpha info for the palette, it starts at pPalette[768]
+//
 uint8_t * PNG::getPalette()
 {
     return _png.ucPalette;
 } /* getPalette() */
-
+//
+// Close the file - not needed when decoding from memory
+//
 void PNG::close()
 {
     if (_png.pfnClose)
@@ -143,14 +185,18 @@ void PNG::close()
 //
 // Decode the image
 // returns:
-// 1 = good result
-// 0 = error
+// 0 = PNG_SUCCESS
+// non 0 = PNG enumerated error code
 //
 int PNG::decode(void *pUser, int iOptions)
 {
     return DecodePNG(&_png, pUser, iOptions);
 } /* decode() */
-
+//
+// Convert a line of native pixels (all supported formats) into RGB565
+// can optionally mix in a background color - set to -1 to disable
+// Background color is in the form of a uint32_t -> 00BBGGRR (MSB on left)
+//
 void PNG::getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndianness, uint32_t u32Bkgd)
 {
     PNGRGB565(pDraw, pPixels, iEndianness, u32Bkgd, hasAlpha());
