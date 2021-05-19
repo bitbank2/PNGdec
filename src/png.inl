@@ -201,7 +201,10 @@ PNG_STATIC int32_t readRAM(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen)
     pFile->iPos += iBytesRead;
     return iBytesRead;
 } /* readRAM() */
-
+//
+// Verify it's a PNG file and then parse the IHDR chunk
+// to get basic image size/type/etc
+//
 PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
 {
     uint8_t *s = pPage->ucFileBuf;
@@ -212,12 +215,12 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
     iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, 32);
     if (iBytesRead < 32) { // a PNG file this tiny? probably bad
         pPage->iError = PNG_INVALID_FILE;
-        return 0;
+        return pPage->iError;
     }
 
     if (MOTOLONG(s) != 0x89504e47) { // check that it's a PNG file
         pPage->iError = PNG_INVALID_FILE;
-        return 0;
+        return pPage->iError;
     }
     if (MOTOLONG(&s[12]) == 0x49484452/*'IHDR'*/) {
         pPage->iWidth = MOTOLONG(&s[16]);
@@ -225,8 +228,10 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
         pPage->ucBpp = s[24]; // bits per pixel
         pPage->ucPixelType = s[25]; // pixel type
         pPage->iInterlaced = s[28];
-        if (pPage->iInterlaced || pPage->ucBpp > 8) // 16-bit pixels are not supported (yet)
+        if (pPage->iInterlaced || pPage->ucBpp > 8) { // 16-bit pixels are not supported (yet)
             pPage->iError = PNG_UNSUPPORTED_FEATURE;
+            return pPage->iError;
+        }
         // calculate the number of bytes per line of pixels
         switch (pPage->ucPixelType) {
             case PNG_PIXEL_GRAYSCALE: // grayscale
@@ -245,7 +250,7 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
                 pPage->iHasAlpha = 1;
         } // switch
     }
-    return 0;
+    return PNG_SUCCESS;
 } /* PNGParseInfo() */
 //
 // De-filter the current line of pixels
@@ -580,6 +585,13 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 #endif
         } // switch
         iOffset += (iLen + 4); // skip data + CRC
+        if (iOffset > iBytesRead-8) { // need to read more data
+            iFileOffset += (iOffset - iBytesRead);
+            (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
+            iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
+            iFileOffset += iBytesRead;
+            iOffset = 0;
+        }
     } // while !bDone
 //            DeFilter(pCurr, pPrev, pPage->iWidth, iBpp);
             // pass the pixels to the draw function

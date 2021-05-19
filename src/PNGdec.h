@@ -197,7 +197,9 @@ void PNG_close(PNGIMAGE *pPNG);
 int PNG_getLastError(PNGIMAGE *pPNG);
 int PNG_getBpp(PNGIMAGE *pPNG);
 int PNG_getLastError(PNGIMAGE *pPNG);
-void PNG_setPixelType(PNGIMAGE *pPNG, int iType); // defaults to little endian
+int PNG_getBufferSize(PNGIMAGE *pPNG);
+uint8_t *PNG_getBuffer(PNGIMAGE *pPNG);
+void PNG_setBuffer(PNGIMAGE *pPNG, uint8_t *pBuffer);
 #endif // __cplusplus
 
 // Due to unaligned memory causing an exception, we have to do these macros the slow way
