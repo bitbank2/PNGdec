@@ -106,10 +106,10 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
             for (x=0; x<pDraw->iWidth; x+=8) { // groups of 8 pixels in each byte of mask
                 c = 0;
                 for (i=0; i<8; i++) {
+                    c <<= 1;
                     alpha = s[3];
                    if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
                        c |= 1;
-                    c <<= 1;
                     s += 4;
                 }
                 *d++ = c;
@@ -121,10 +121,10 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
             for (x=0; x<pDraw->iWidth; x+=8) { // groups of 8 pixels in each byte of mask
                 c = 0;
                 for (i=0; i<8; i++) {
+                    c <<= 1;
                     alpha = s[1];
                    if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
                        c |= 1;
-                    c <<= 1;
                     s += 2;
                 }
                 *d++ = c;
@@ -137,10 +137,10 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
             for (x=0; x<pDraw->iWidth; x+=8) { // groups of 8 pixels in each byte of mask
                 c = 0;
                 for (i=0; i<8; i++) {
+                    c <<= 1;
                     alpha = pPal[s[0]]; // get palette alpha for this color
                    if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
                        c |= 1;
-                    c <<= 1;
                     s++;
                 }
                 *d++ = c;
