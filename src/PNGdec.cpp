@@ -24,7 +24,7 @@
 // forward references
 PNG_STATIC int PNGInit(PNGIMAGE *pPNG);
 PNG_STATIC int DecodePNG(PNGIMAGE *pImage, void *pUser, int iOptions);
-PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask);
+PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold);
 // Include the C code which does the actual work
 #include "png.inl"
 
@@ -203,7 +203,7 @@ void PNG::getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndianness, ui
     PNGRGB565(pDraw, pPixels, iEndianness, u32Bkgd, hasAlpha());
 } /* getLineAsRGB565() */
 
-void PNG::getAlphaMask(PNGDRAW *pDraw, uint8_t *pMask)
+void PNG::getAlphaMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
 {
-    PNGMakeMask(pDraw, pMask);
+    PNGMakeMask(pDraw, pMask, ucThreshold);
 } /* getAlphaMask() */

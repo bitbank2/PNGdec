@@ -93,11 +93,10 @@ uint8_t * PNG_getBuffer(PNGIMAGE *pPNG)
 } /* PNG_getBuffer() */
 
 #endif // !__cplusplus
-PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
+PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
 {
     uint8_t alpha, c, *s, *d, *pPal;
     int i, x;
-    const uint8_t ALPHA_THRESHOLD = 127;
     
     switch (pDraw->iPixelType) {
         case PNG_PIXEL_TRUECOLOR_ALPHA: // truecolor + alpha
@@ -108,7 +107,7 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
                 for (i=0; i<8; i++) {
                     c <<= 1;
                     alpha = s[3];
-                   if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
+                   if (alpha >= ucThreshold) // if opaque 'enough', set the bit
                        c |= 1;
                     s += 4;
                 }
@@ -123,7 +122,7 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
                 for (i=0; i<8; i++) {
                     c <<= 1;
                     alpha = s[1];
-                   if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
+                   if (alpha >= ucThreshold) // if opaque 'enough', set the bit
                        c |= 1;
                     s += 2;
                 }
@@ -139,7 +138,7 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
                 for (i=0; i<8; i++) {
                     c <<= 1;
                     alpha = pPal[s[0]]; // get palette alpha for this color
-                   if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
+                   if (alpha >= ucThreshold) // if opaque 'enough', set the bit
                        c |= 1;
                     s++;
                 }
