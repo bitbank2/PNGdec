@@ -181,6 +181,7 @@ class PNG
     int getBufferSize();
     uint8_t *getBuffer();
     void setBuffer(uint8_t *pBuffer);
+    void getAlphaMask(PNGDRAW *pDraw, uint8_t *pMask);
     void getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndianness, uint32_t u32Bkgd);
 
   private:
@@ -198,6 +199,10 @@ int PNG_getLastError(PNGIMAGE *pPNG);
 int PNG_getBpp(PNGIMAGE *pPNG);
 int PNG_getLastError(PNGIMAGE *pPNG);
 int PNG_getBufferSize(PNGIMAGE *pPNG);
+uint8_t *PNG_getPalette(PNGIMAGE *pPNG);
+int PNG_getPixelType(PNGIMAGE *pPNG);
+int PNG_hasAlpha(PNGIMAGE *pPNG);
+int PNG_isInterlaced(PNGIMAGE *pPNG);
 uint8_t *PNG_getBuffer(PNGIMAGE *pPNG);
 void PNG_setBuffer(PNGIMAGE *pPNG, uint8_t *pBuffer);
 #endif // __cplusplus

@@ -21,6 +21,134 @@
 //
 #include "zlib.h"
 //
+// C interface
+//
+#ifndef __cplusplus
+// C API
+int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
+{
+    pPNG->iError = PNG_SUCCESS;
+    pPNG->pfnRead = readMem;
+    pPNG->pfnSeek = seekMem;
+    pPNG->pfnDraw = pfnDraw;
+    pPNG->pfnOpen = NULL;
+    pPNG->pfnClose = NULL;
+    pPNG->PNGFile.iSize = iDataSize;
+    pPNG->PNGFile.pData = pData;
+    return PNGInit(pPNG);
+} /* PNG_openRAM() */
+
+#ifdef __LINUX__
+int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK *pfnDraw)
+{
+    pPNG->iError = PNG_SUCCESS;
+    pPNG->pfnRead = readFile;
+    pPNG->pfnSeek = seekFile;
+    pPNG->pfnDraw = pfnDraw;
+    pPNG->pfnOpen = NULL;
+    pPNG->pfnClose = closeFile;
+    pPNG->PNGFile.fHandle = fopen(szFilename, "r+b");
+    if (pPNG->PNGFile.fHandle == NULL)
+       return 0;
+    fseek((FILE *)pPNG->PNGFile.fHandle, 0, SEEK_END);
+    pPNG->PNGFile.iSize = (int)ftell((FILE *)pPNG->PNGFile.fHandle);
+    fseek((FILE *)pPNG->PNGFile.fHandle, 0, SEEK_SET);
+    return PNGInit(pPNG);
+} /* PNG_openFile() */
+#endif // __LINUX__
+void PNG_close(PNGIMAGE *pPNG)
+{
+    if (pPNG->pfnClose)
+        (*pPNG->pfnClose)(pPNG->PNGFile.fHandle);
+} /* PNG_close() */
+
+int PNG_getWidth(PNGIMAGE *pPNG)
+{
+    return pPNG->iWidth;
+} /* PNG_getsWidth() */
+
+int PNG_getHeight(PNGIMAGE *pPNG)
+{
+    return pPNG->iHeight;
+} /* PNG_getHeight() */
+
+int PNG_getLastError(PNGIMAGE *pPNG)
+{
+    return pPNG->iError;
+} /* PNG_getLastError() */
+
+uint8_t *PNG_getPalette(PNGIMAGE *pPNG)
+{
+    return pPNG->ucPalette;
+} /* PNG_getPalette() */
+
+int PNG_getBufferSize(PNGIMAGE *pPNG)
+{
+    return pPNG->iHeight * pPNG->iPitch;
+} /* PNG_getBufferSize() */
+
+uint8_t * PNG_getBuffer(PNGIMAGE *pPNG)
+{
+    return pPNG->pImage;
+} /* PNG_getBuffer() */
+
+#endif // !__cplusplus
+PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask)
+{
+    uint8_t alpha, c, *s, *d, *pPal;
+    int i, x;
+    const uint8_t ALPHA_THRESHOLD = 127;
+    
+    switch (pDraw->iPixelType) {
+        case PNG_PIXEL_TRUECOLOR_ALPHA: // truecolor + alpha
+            s = pDraw->pPixels;
+            d = pMask;
+            for (x=0; x<pDraw->iWidth; x+=8) { // groups of 8 pixels in each byte of mask
+                c = 0;
+                for (i=0; i<8; i++) {
+                    alpha = s[3];
+                   if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
+                       c |= 1;
+                    c <<= 1;
+                    s += 4;
+                }
+                *d++ = c;
+            }
+            break;
+        case PNG_PIXEL_GRAY_ALPHA:
+            s = pDraw->pPixels;
+            d = pMask;
+            for (x=0; x<pDraw->iWidth; x+=8) { // groups of 8 pixels in each byte of mask
+                c = 0;
+                for (i=0; i<8; i++) {
+                    alpha = s[1];
+                   if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
+                       c |= 1;
+                    c <<= 1;
+                    s += 2;
+                }
+                *d++ = c;
+            }
+            break;
+        case PNG_PIXEL_INDEXED:
+            s = pDraw->pPixels;
+            pPal = &pDraw->pPalette[768];
+            d = pMask;
+            for (x=0; x<pDraw->iWidth; x+=8) { // groups of 8 pixels in each byte of mask
+                c = 0;
+                for (i=0; i<8; i++) {
+                    alpha = pPal[s[0]]; // get palette alpha for this color
+                   if (alpha > ALPHA_THRESHOLD) // if opaque 'enough', set the bit
+                       c |= 1;
+                    c <<= 1;
+                    s++;
+                }
+                *d++ = c;
+            }
+            break;
+    } // switch on pixel type
+} /* PNGMakeMask() */
+//
 // Convert a line of native PNG pixels into RGB565
 // handles all standard pixel types
 // written for simplicity, not necessarily performance
@@ -293,84 +421,53 @@ PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iPitch)
             if (iBpp == 1) {
                 int a, c;
                 uint8_t *pEnd = &pCurr[iPitch];
-                /* First pixel/byte */
+                // First pixel/byte
                 c = *pPrev++;
                 a = *pCurr + c;
                 *pCurr++ = (uint8_t)a;
-
-                /* Remainder */
-                while (pCurr < pEnd)
-                {
+                while (pCurr < pEnd) {
                    int b, pa, pb, pc, p;
-
-                   a &= 0xff; /* From previous iteration or start */
+                   a &= 0xff; // From previous iteration
                    b = *pPrev++;
                    p = b - c;
                    pc = a - c;
-
-//             #ifdef PNG_USE_ABS
-//                   pa = abs(p);
-//                   pb = abs(pc);
-//                   pc = abs(p + pc);
-//             #else
+                   // assume no native ABS() instruction
                    pa = p < 0 ? -p : p;
                    pb = pc < 0 ? -pc : pc;
                    pc = (p + pc) < 0 ? -(p + pc) : p + pc;
-//             #endif
-
-                   /* Find the best predictor, the least of pa, pb, pc favoring the earlier
-                    * ones in the case of a tie.
-                    */
-                   if (pb < pa)
-                   {
+                   // choose the best predictor
+                   if (pb < pa) {
                       pa = pb; a = b;
                    }
                    if (pc < pa) a = c;
-
-                   /* Calculate the current pixel in a, and move the previous row pixel to c
-                    * for the next time round the loop
-                    */
+                   // Calculate current pixel
                    c = b;
                    a += *pCurr;
                    *pCurr++ = (uint8_t)a;
                 }
             } else { // multi-byte
                 uint8_t *pEnd = &pCurr[iBpp];
-
-                /* Process the first pixel in the row completely (this is the same as 'up'
-                 * because there is only one candidate predictor for the first row).
-                 */
-                while (pCurr < pEnd)
-                {
+                // first pixel is treated the same as 'up'
+                while (pCurr < pEnd) {
                    int a = *pCurr + *pPrev++;
                    *pCurr++ = (uint8_t)a;
                 }
-                /* Remainder */
                 pEnd = pEnd + (iPitch - iBpp);
-                while (pCurr < pEnd)
-                {
+                while (pCurr < pEnd) {
                    int a, b, c, pa, pb, pc, p;
                    c = pPrev[-iBpp];
                    a = pCurr[-iBpp];
                    b = *pPrev++;
                    p = b - c;
                    pc = a - c;
-//             #ifdef PNG_USE_ABS
-//                   pa = abs(p);
-//                   pb = abs(pc);
-//                   pc = abs(p + pc);
-//             #else
+                    // asume no native ABS() instruction
                    pa = p < 0 ? -p : p;
                    pb = pc < 0 ? -pc : pc;
                    pc = (p + pc) < 0 ? -(p + pc) : p + pc;
-//             #endif
-
-                   if (pb < pa)
-                   {
+                   if (pb < pa) {
                       pa = pb; a = b;
                    }
                    if (pc < pa) a = c;
-
                    a += *pCurr;
                    *pCurr++ = (uint8_t)a;
                 }
@@ -388,7 +485,13 @@ PNG_STATIC int PNGInit(PNGIMAGE *pPNG)
 {
     return PNGParseInfo(pPNG); // gather info for image
 } /* PNGInit() */
-
+//
+// Decode the PNG file
+//
+// You must call open() before calling decode()
+// This function can be called repeatedly without having
+// to close and re-open the file
+//
 PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 {
     int err, y, iLen=0;
@@ -404,12 +507,15 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
         pPage->iError = PNG_NO_BUFFER;
         return 0;
     }
+    // Use internal buffer to maintain the current and previous lines
     pCurr = pPage->ucPixels;
     pPrev = &pPage->ucPixels[MAX_BUFFERED_PIXELS];
     pPage->iError = PNG_SUCCESS;
     // Start decoding the image
     bDone = FALSE;
-    // inflate the image data
+    // Inflate the compressed image data
+    // The allocation functions are disabled and zlib has been modified
+    // to not use malloc/free and instead the buffer is part of the PNG class
     d_stream.zalloc = (alloc_func)0;
     d_stream.zfree = (free_func)0;
     d_stream.opaque = (voidpf)0;
@@ -418,20 +524,21 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     d_stream.state = (struct internal_state FAR *)state;
     state->window = &pPage->ucZLIB[sizeof(inflate_state)]; // point to 32k dictionary buffer
     err = inflateInit(&d_stream);
+#ifdef FUTURE
 //    if (inpage->cCompression == PIL_COMP_IPHONE_FLATE)
 //        err = mz_inflateInit2(&d_stream, -15); // undocumented option which ignores header and crcs
 //    else
 //        err = mz_inflateInit2(&d_stream, 15);
-
-    iFileOffset = 8;
-    iOffset = 0;
+#endif // FUTURE
+    
+    iFileOffset = 8; // skip PNG file signature
+    iOffset = 0; // internal buffer offset starts at 0
     // Read some data to start
     (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
     iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
     iFileOffset += iBytesRead;
     y = 0;
-    // tell miniz to uncompress the entire bitmap
-    d_stream.avail_out = 0; //(pPage->iPitch+1) * pPage->iHeight;
+    d_stream.avail_out = 0;
     d_stream.next_out = pPage->pImage;
 
     while (y < pPage->iHeight) { // continue until fully decoded
@@ -486,7 +593,6 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 while (iLen) {
                     if (iOffset >= iBytesRead) {
                         // we ran out of data; get some more
-//                        (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
                         iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf, (iLen > PNG_FILE_BUF_SIZE) ? PNG_FILE_BUF_SIZE : iLen);
                         iFileOffset += iBytesRead;
                         iOffset = 0;
@@ -593,19 +699,6 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
             iOffset = 0;
         }
     } // while !bDone
-//            DeFilter(pCurr, pPrev, pPage->iWidth, iBpp);
-            // pass the pixels to the draw function
-//            pngd.iHeight = pPage->iHeight;
-//            pngd.iWidth = pPage->iWidth;
-//            pngd.pPixels = pCurr;
-//            pngd.y = y;
-//            (*pPage->pfnDraw)(&pngd);
-            // swap current and reference lines
-//            tmp = pCurr;
-//            pCurr = pPrev;
-//            pPrev = tmp;
-//            y++;
-//        }  while (y < pPage->iHeight && d_stream.avail_out == 0);
     } // while y < height
     err = inflateEnd(&d_stream);
     return pPage->iError;
