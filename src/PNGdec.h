@@ -181,7 +181,7 @@ class PNG
     int getBufferSize();
     uint8_t *getBuffer();
     void setBuffer(uint8_t *pBuffer);
-    void getAlphaMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold);
+    uint8_t getAlphaMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold);
     void getLineAsRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndianness, uint32_t u32Bkgd);
 
   private:

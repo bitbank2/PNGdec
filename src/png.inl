@@ -93,9 +93,10 @@ uint8_t * PNG_getBuffer(PNGIMAGE *pPNG)
 } /* PNG_getBuffer() */
 
 #endif // !__cplusplus
-PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
+PNG_STATIC uint8_t PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
 {
     uint8_t alpha, c, *s, *d, *pPal;
+    uint8_t cHasOpaque = 0;
     int i, x;
     
     switch (pDraw->iPixelType) {
@@ -112,6 +113,7 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
                     s += 4;
                 }
                 *d++ = c;
+                cHasOpaque |= c;
             }
             break;
         case PNG_PIXEL_GRAY_ALPHA:
@@ -127,6 +129,7 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
                     s += 2;
                 }
                 *d++ = c;
+                cHasOpaque |= c;
             }
             break;
         case PNG_PIXEL_INDEXED:
@@ -143,12 +146,15 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
                     s++;
                 }
                 *d++ = c;
+                cHasOpaque |= c;
             }
             break;
         default: // No alpha channel; make a mask of all 1's
             memset(pMask, 0xff, (pDraw->iWidth+7)>>3);
+            cHasOpaque = 1;
             break;
     } // switch on pixel type
+    return cHasOpaque; // let the caller know if any pixels are opaque
 } /* PNGMakeMask() */
 //
 // Convert a line of native PNG pixels into RGB565
