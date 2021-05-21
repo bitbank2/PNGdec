@@ -145,6 +145,9 @@ PNG_STATIC void PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
                 *d++ = c;
             }
             break;
+        default: // No alpha channel; make a mask of all 1's
+            memset(pMask, 0xff, (pDraw->iWidth+7)>>3);
+            break;
     } // switch on pixel type
 } /* PNGMakeMask() */
 //
