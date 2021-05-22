@@ -36,7 +36,7 @@ uint16_t usPixels[320];
 uint8_t ucMask[40];
 PRIVATE *pPriv = (PRIVATE *)pDraw->pUser;
 
-  png.getLineAsRGB565(pDraw, usPixels, RGB565_BIG_ENDIAN, 0xffffffff);
+  png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
   if (png.getAlphaMask(pDraw, ucMask, 255)) { // if any pixels are opaque, draw them
     spilcdWritePixelsMasked(&lcd, pPriv->xoff, pPriv->yoff + pDraw->y, (uint8_t *)usPixels, ucMask, pDraw->iWidth, DRAW_TO_LCD);
   }

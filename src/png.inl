@@ -174,7 +174,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                 usPixel = (c >> 3); // blue
                 usPixel |= ((c >> 2) << 5); // green
                 usPixel |= ((c >> 3) << 11); // red
-                if (iEndiannes == RGB565_BIG_ENDIAN)
+                if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                     usPixel = __builtin_bswap16(usPixel);
                 *pDest++ = usPixel;
             }
@@ -184,7 +184,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                 usPixel = (s[2] >> 3); // blue
                 usPixel |= ((s[1] >> 2) << 5); // green
                 usPixel |= ((s[0] >> 3) << 11); // red
-                if (iEndiannes == RGB565_BIG_ENDIAN)
+                if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                     usPixel = __builtin_bswap16(usPixel);
                 *pDest++ = usPixel;
                 s += 3;
@@ -199,7 +199,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                         usPixel = (pPal[2] >> 3); // blue
                         usPixel |= ((pPal[1] >> 2) << 5); // green
                         usPixel |= ((pPal[0] >> 3) << 11); // red
-                        if (iEndiannes == RGB565_BIG_ENDIAN)
+                        if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                             usPixel = __builtin_bswap16(usPixel);
                         *pDest++ = usPixel;
                     }
@@ -211,14 +211,14 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                         usPixel = (pPal[2] >> 3); // blue
                         usPixel |= ((pPal[1] >> 2) << 5); // green
                         usPixel |= ((pPal[0] >> 3) << 11); // red
-                        if (iEndiannes == RGB565_BIG_ENDIAN)
+                        if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                             usPixel = __builtin_bswap16(usPixel);
                         *pDest++ = usPixel;
                         pPal = &pDraw->pPalette[(c & 0xf) * 3];
                         usPixel = (pPal[2] >> 3); // blue
                         usPixel |= ((pPal[1] >> 2) << 5); // green
                         usPixel |= ((pPal[0] >> 3) << 11); // red
-                        if (iEndiannes == RGB565_BIG_ENDIAN)
+                        if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                             usPixel = __builtin_bswap16(usPixel);
                         *pDest++ = usPixel;
                     }
@@ -231,7 +231,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                             usPixel = (pPal[2] >> 3); // blue
                             usPixel |= ((pPal[1] >> 2) << 5); // green
                             usPixel |= ((pPal[0] >> 3) << 11); // red
-                            if (iEndiannes == RGB565_BIG_ENDIAN)
+                            if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                                 usPixel = __builtin_bswap16(usPixel);
                             *pDest++ = usPixel;
                             c <<= 2;
@@ -246,7 +246,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                             usPixel = (pPal[2] >> 3); // blue
                             usPixel |= ((pPal[1] >> 2) << 5); // green
                             usPixel |= ((pPal[0] >> 3) << 11); // red
-                            if (iEndiannes == RGB565_BIG_ENDIAN)
+                            if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                                 usPixel = __builtin_bswap16(usPixel);
                             *pDest++ = usPixel;
                             c <<= 1;
@@ -280,7 +280,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                         usPixel |= ((g >> 2) << 5); // green
                         usPixel |= ((r >> 3) << 11); // red
                     }
-                    if (iEndiannes == RGB565_BIG_ENDIAN)
+                    if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                         usPixel = __builtin_bswap16(usPixel);
                     *pDest++ = usPixel;
                     s += 4; // skip alpha
@@ -290,7 +290,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     usPixel = (s[2] >> 3); // blue
                     usPixel |= ((s[1] >> 2) << 5); // green
                     usPixel |= ((s[0] >> 3) << 11); // red
-                    if (iEndiannes == RGB565_BIG_ENDIAN)
+                    if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
                         usPixel = __builtin_bswap16(usPixel);
                     *pDest++ = usPixel;
                     s += 4; // skip alpha
@@ -517,7 +517,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     }
     // Use internal buffer to maintain the current and previous lines
     pCurr = pPage->ucPixels;
-    pPrev = &pPage->ucPixels[MAX_BUFFERED_PIXELS];
+    pPrev = &pPage->ucPixels[PNG_MAX_BUFFERED_PIXELS];
     pPage->iError = PNG_SUCCESS;
     // Start decoding the image
     bDone = FALSE;

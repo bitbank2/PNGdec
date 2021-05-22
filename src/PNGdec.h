@@ -50,7 +50,7 @@
 #define PNG_FILE_BUF_SIZE 2048
 // Number of bytes to reserve for current and previous lines
 // Defaults to 640 32-bit pixels max width
-#define MAX_BUFFERED_PIXELS (640*4 + 1)
+#define PNG_MAX_BUFFERED_PIXELS (640*4 + 1)
 // PNG filter type
 enum {
     PNG_FILTER_NONE=0,
@@ -76,8 +76,8 @@ enum {
 };
 // RGB565 endianness
 enum {
-    RGB565_LITTLE_ENDIAN = 0,
-    RGB565_BIG_ENDIAN
+    PNG_RGB565_LITTLE_ENDIAN = 0,
+    PNG_RGB565_BIG_ENDIAN
 };
 
 enum {
@@ -107,13 +107,6 @@ typedef struct png_draw_tag
     uint8_t *pPalette;
     uint8_t *pPixels;
 } PNGDRAW;
-
-typedef struct buffered_bits
-{
-unsigned char *pBuf; // buffer pointer
-uint32_t ulBits; // buffered bits
-uint32_t ulBitOff; // current bit offset
-} BUFFERED_BITS;
 
 typedef struct png_file_tag
 {
@@ -152,7 +145,7 @@ typedef struct png_image_tag
     PNGFILE PNGFile;
     uint8_t ucZLIB[32768 + sizeof(inflate_state)]; // put this here to avoid needing malloc/free
     uint8_t ucPalette[1024];
-    uint8_t ucPixels[MAX_BUFFERED_PIXELS * 2];
+    uint8_t ucPixels[PNG_MAX_BUFFERED_PIXELS * 2];
     uint8_t ucFileBuf[PNG_FILE_BUF_SIZE]; // holds temp file data
 } PNGIMAGE;
 

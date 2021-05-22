@@ -96,7 +96,7 @@ void PNGDraw(PNGDRAW *pDraw)
 {
 uint16_t usPixels[320];
 
-  png.getLineAsRGB565(pDraw, usPixels, RGB565_BIG_ENDIAN);
+  png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_BIG_ENDIAN);
   spilcdSetPosition(&lcd, 0, pDraw->y, pDraw->iWidth, 1, DRAW_TO_LCD);
   spilcdWriteDataBlock(&lcd, (uint8_t *)usPixels, pDraw->iWidth*2, DRAW_TO_LCD | DRAW_WITH_DMA);
 } /* PNGDraw() */
