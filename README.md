@@ -30,3 +30,9 @@ Feature summary:<br>
 - Arduino-style C++ library class with simple API<br>
 - Can by built as straight C as well<br>
 <br>
+
+Documentation:<br>
+---------------<br>
+Detailed information about the API is in the Wiki<br>
+See the examples folder for easy starting points<br>
+<br>
