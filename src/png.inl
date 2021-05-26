@@ -354,7 +354,7 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
         return pPage->iError;
     }
 
-    if (MOTOLONG(s) != 0x89504e47) { // check that it's a PNG file
+    if (MOTOLONG(s) != (int32_t)0x89504e47) { // check that it's a PNG file
         pPage->iError = PNG_INVALID_FILE;
         return pPage->iError;
     }
@@ -386,6 +386,9 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
                 pPage->iHasAlpha = 1;
         } // switch
     }
+    if (pPage->iPitch >= PNG_MAX_BUFFERED_PIXELS)
+       return PNG_TOO_BIG;
+
     return PNG_SUCCESS;
 } /* PNGParseInfo() */
 //

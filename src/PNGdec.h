@@ -93,7 +93,8 @@ enum {
     PNG_MEM_ERROR,
     PNG_NO_BUFFER,
     PNG_UNSUPPORTED_FEATURE,
-    PNG_INVALID_FILE
+    PNG_INVALID_FILE,
+    PNG_TOO_BIG
 };
 
 typedef struct png_draw_tag
