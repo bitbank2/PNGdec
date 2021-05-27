@@ -31,6 +31,15 @@ Feature summary:<br>
 - Can by built as straight C as well<br>
 <br>
 
+How fast is it?<br>
+---------------<br>
+The examples folder contains a sketch to measure the performance of decoding a 240x200 image of varying bit depths. Here's the results when run on a few common MCUs:<br>
+
+<br>
+<p align="center">
+  <img width="770" height="201" src="https://github.com/bitbank2/PNGdec/blob/master/perf_small.png?raw=true">
+</p>
+
 Documentation:<br>
 ---------------<br>
 Detailed information about the API is in the Wiki<br>
