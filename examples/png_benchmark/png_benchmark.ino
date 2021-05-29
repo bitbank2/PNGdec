@@ -32,6 +32,7 @@ void setup() {
 
 void loop() {
 long lTime;
+char szTemp[256];
 int rc, w, h;
 PRIVATE priv;
 
@@ -40,17 +41,20 @@ PRIVATE priv;
     if (rc == PNG_SUCCESS) {
         w = png.getWidth();
         h = png.getHeight();
-        Serial.printf("Successfully opened octocat_32bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
+        sprintf(szTemp, "Successfully opened octocat_32bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
+        Serial.print(szTemp);
         priv.bConvert = false;
         lTime = micros();
         rc = png.decode((void *)&priv, 0);
         lTime = micros() - lTime;
-        Serial.printf("Decode time for native pixels = %d us\n", (int)lTime); 
+        sprintf(szTemp, "Decode time for native pixels = %d us\n", (int)lTime);
+        Serial.print(szTemp);
         priv.bConvert = true;
         lTime = micros();
         rc = png.decode((void *)&priv, 0);
         lTime = micros() - lTime;
-        Serial.printf("Decode time for RGB565 pixels = %d us\n", (int)lTime); 
+        sprintf(szTemp, "Decode time for RGB565 pixels = %d us\n", (int)lTime);
+        Serial.print(szTemp); 
         png.close(); // not needed for memory->memory decode
     }
 
@@ -59,17 +63,20 @@ PRIVATE priv;
     if (rc == PNG_SUCCESS) {
         w = png.getWidth();
         h = png.getHeight();
-        Serial.printf("Successfully opened octocat_8bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
+        sprintf(szTemp, "Successfully opened octocat_8bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
+        Serial.print(szTemp);
         priv.bConvert = false;
         lTime = micros();
         rc = png.decode((void *)&priv, 0);
         lTime = micros() - lTime;
-        Serial.printf("Decode time for native pixels = %d us\n", (int)lTime); 
+        sprintf(szTemp, "Decode time for native pixels = %d us\n", (int)lTime);
+        Serial.print(szTemp);
         priv.bConvert = true;
         lTime = micros();
         rc = png.decode((void *)&priv, 0);
         lTime = micros() - lTime;
-        Serial.printf("Decode time for RGB565 pixels = %d us\n", (int)lTime); 
+        sprintf(szTemp, "Decode time for RGB565 pixels = %d us\n", (int)lTime);
+        Serial.print(szTemp);
         png.close(); // not needed for memory->memory decode
     }
 // 4-bpp image
@@ -77,17 +84,20 @@ PRIVATE priv;
     if (rc == PNG_SUCCESS) {
         w = png.getWidth();
         h = png.getHeight();
-        Serial.printf("Successfully opened octocat_4bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
+        sprintf(szTemp, "Successfully opened octocat_4bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
+        Serial.print(szTemp);
         priv.bConvert = false;
         lTime = micros();
         rc = png.decode((void *)&priv, 0);
         lTime = micros() - lTime;
-        Serial.printf("Decode time for native pixels = %d us\n", (int)lTime); 
+        sprintf(szTemp, "Decode time for native pixels = %d us\n", (int)lTime);
+        Serial.print(szTemp);
         priv.bConvert = true;
         lTime = micros();
         rc = png.decode((void *)&priv, 0);
         lTime = micros() - lTime;
-        Serial.printf("Decode time for RGB565 pixels = %d us\n", (int)lTime); 
+        sprintf(szTemp, "Decode time for RGB565 pixels = %d us\n", (int)lTime);
+        Serial.print(szTemp); 
         png.close(); // not needed for memory->memory decode
     }
   delay(5000);
