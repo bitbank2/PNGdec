@@ -96,7 +96,7 @@ void PNGDraw(PNGDRAW *pDraw)
 {
 uint16_t usPixels[320];
 
-  png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_BIG_ENDIAN);
+  png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
   spilcdSetPosition(&lcd, 0, pDraw->y, pDraw->iWidth, 1, DRAW_TO_LCD);
   spilcdWriteDataBlock(&lcd, (uint8_t *)usPixels, pDraw->iWidth*2, DRAW_TO_LCD | DRAW_WITH_DMA);
 } /* PNGDraw() */
@@ -122,7 +122,7 @@ void loop() {
     if (rc == PNG_SUCCESS) {
         Serial.printf("image specs: (%d x %d), %d bpp, pixel type: %d\n", png.getWidth(), png.getHeight(), png.getBpp(), png.getPixelType());
         ulTime = millis();
-        rc = png.decode();
+        rc = png.decode(NULL, 0);
         ulTime = millis() - ulTime;
         png.close();
         Serial.printf("Decode time = %dms\n", (int)ulTime);
