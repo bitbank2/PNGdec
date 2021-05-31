@@ -137,14 +137,41 @@ PNG_STATIC uint8_t PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThresho
             pPal = &pDraw->pPalette[768];
             d = pMask;
             for (x=0; x<pDraw->iWidth; x+=8) { // groups of 8 pixels in each byte of mask
+                uint8_t ucPix = 0;
                 c = 0;
-                for (i=0; i<8; i++) {
-                    c <<= 1;
-                    alpha = pPal[s[0]]; // get palette alpha for this color
-                   if (alpha >= ucThreshold) // if opaque 'enough', set the bit
-                       c |= 1;
-                    s++;
-                }
+                switch (pDraw->iBpp) {
+                    case 2:
+                        for (i=0; i<8; i++) {
+                            if (i == 0 || i == 4)
+                                ucPix = *s++;
+                            c <<= 1;
+                            alpha = pPal[ucPix >> 6]; // get palette alpha for this color
+                           if (alpha >= ucThreshold) // if opaque 'enough', set the bit
+                               c |= 1;
+                            ucPix <<= 2;
+                        }
+                        break;
+                    case 4:
+                        for (i=0; i<8; i++) {
+                            if ((i & 1) == 0)
+                                ucPix = *s++;
+                            c <<= 1;
+                            alpha = pPal[ucPix >> 4]; // get palette alpha for this color
+                           if (alpha >= ucThreshold) // if opaque 'enough', set the bit
+                               c |= 1;
+                            ucPix <<= 4;
+                        }
+                        break;
+                    case 8:
+                        for (i=0; i<8; i++) {
+                            c <<= 1;
+                            alpha = pPal[s[0]]; // get palette alpha for this color
+                           if (alpha >= ucThreshold) // if opaque 'enough', set the bit
+                               c |= 1;
+                            s++;
+                        }
+                        break;
+                } // switch on bit depth
                 *d++ = c;
                 cHasOpaque |= c;
             }
