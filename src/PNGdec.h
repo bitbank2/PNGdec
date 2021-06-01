@@ -64,6 +64,7 @@ enum {
 // decode options
 enum {
     PNG_CHECK_CRC = 1,
+    PNG_FAST_PALETTE = 2
 };
 
 // source pixel type
@@ -106,6 +107,7 @@ typedef struct png_draw_tag
     int iBpp; // bits per color stimulus
     void *pUser; // user supplied pointer
     uint8_t *pPalette;
+    uint16_t *pFastPalette;
     uint8_t *pPixels;
 } PNGDRAW;
 

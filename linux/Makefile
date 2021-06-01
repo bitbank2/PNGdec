@@ -9,7 +9,7 @@ png_demo: main.o PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o inftre
 main.o: main.cpp
 	$(CXX) $(CFLAGS) -c main.cpp
 
-PNGdec.o: ../src/PNGdec.cpp
+PNGdec.o: ../src/PNGdec.cpp ../src/png.inl ../src/PNGdec.h
 	$(CXX) $(CFLAGS) -c ../src/PNGdec.cpp
 
 adler32.o: ../src/adler32.c

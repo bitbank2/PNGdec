@@ -28,30 +28,29 @@ uint16_t usPixels[240];
 
 void setup() {
   Serial.begin(115200);
+  delay(2000);
+  Serial.println("Starting benchmark...");
 } /* setup() */
 
 void loop() {
 long lTime;
 char szTemp[256];
-int rc, w, h;
+int rc;
 PRIVATE priv;
 
 // 32-bpp image
     rc = png.openFLASH((uint8_t *)octocat_32bpp, sizeof(octocat_32bpp), PNGDraw);
     if (rc == PNG_SUCCESS) {
-        w = png.getWidth();
-        h = png.getHeight();
-        sprintf(szTemp, "Successfully opened octocat_32bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
-        Serial.print(szTemp);
+        Serial.println("Successfully opened octocat_32bpp.png");
         priv.bConvert = false;
         lTime = micros();
-        rc = png.decode((void *)&priv, 0);
+        rc = png.decode((void *)&priv, PNG_FAST_PALETTE);
         lTime = micros() - lTime;
         sprintf(szTemp, "Decode time for native pixels = %d us\n", (int)lTime);
         Serial.print(szTemp);
         priv.bConvert = true;
         lTime = micros();
-        rc = png.decode((void *)&priv, 0);
+        rc = png.decode((void *)&priv, PNG_FAST_PALETTE);
         lTime = micros() - lTime;
         sprintf(szTemp, "Decode time for RGB565 pixels = %d us\n", (int)lTime);
         Serial.print(szTemp); 
@@ -61,19 +60,16 @@ PRIVATE priv;
 // 8-bpp image
     rc = png.openFLASH((uint8_t *)octocat_8bpp, sizeof(octocat_8bpp), PNGDraw);
     if (rc == PNG_SUCCESS) {
-        w = png.getWidth();
-        h = png.getHeight();
-        sprintf(szTemp, "Successfully opened octocat_8bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
-        Serial.print(szTemp);
+        Serial.println("Successfully opened octocat_8bpp.png");
         priv.bConvert = false;
         lTime = micros();
-        rc = png.decode((void *)&priv, 0);
+        rc = png.decode((void *)&priv, PNG_FAST_PALETTE);
         lTime = micros() - lTime;
         sprintf(szTemp, "Decode time for native pixels = %d us\n", (int)lTime);
         Serial.print(szTemp);
         priv.bConvert = true;
         lTime = micros();
-        rc = png.decode((void *)&priv, 0);
+        rc = png.decode((void *)&priv, PNG_FAST_PALETTE);
         lTime = micros() - lTime;
         sprintf(szTemp, "Decode time for RGB565 pixels = %d us\n", (int)lTime);
         Serial.print(szTemp);
@@ -82,19 +78,16 @@ PRIVATE priv;
 // 4-bpp image
     rc = png.openFLASH((uint8_t *)octocat_4bpp, sizeof(octocat_4bpp), PNGDraw);
     if (rc == PNG_SUCCESS) {
-        w = png.getWidth();
-        h = png.getHeight();
-        sprintf(szTemp, "Successfully opened octocat_4bpp.png, size = (%d x %d), %d bpp, pixel type: %d\n", w, h, png.getBpp(), png.getPixelType());
-        Serial.print(szTemp);
+        Serial.println("Successfully opened octocat_4bpp.png");
         priv.bConvert = false;
         lTime = micros();
-        rc = png.decode((void *)&priv, 0);
+        rc = png.decode((void *)&priv, PNG_FAST_PALETTE);
         lTime = micros() - lTime;
         sprintf(szTemp, "Decode time for native pixels = %d us\n", (int)lTime);
         Serial.print(szTemp);
         priv.bConvert = true;
         lTime = micros();
-        rc = png.decode((void *)&priv, 0);
+        rc = png.decode((void *)&priv, PNG_FAST_PALETTE);
         lTime = micros() - lTime;
         sprintf(szTemp, "Decode time for RGB565 pixels = %d us\n", (int)lTime);
         Serial.print(szTemp); 

@@ -218,6 +218,57 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
             }
             break;
         case PNG_PIXEL_INDEXED: // palette color (can be 1/2/4 or 8 bits per pixel)
+            if (pDraw->pFastPalette) { // faster RGB565 palette exists
+               switch (pDraw->iBpp) {
+                   case 8:
+                       for (x=0; x<pDraw->iWidth; x++) {
+                           c = *s++;
+                           usPixel = pDraw->pFastPalette[c];
+                           if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                               usPixel = __builtin_bswap16(usPixel);
+                           *pDest++ = usPixel;
+                       }
+                       break;
+                   case 4:
+                       for (x=0; x<pDraw->iWidth; x+=2) {
+                           c = *s++;
+                           usPixel = pDraw->pFastPalette[c >> 4];
+                           if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                               usPixel = __builtin_bswap16(usPixel);
+                           *pDest++ = usPixel;
+                           usPixel = pDraw->pFastPalette[c & 0xf];
+                           if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                               usPixel = __builtin_bswap16(usPixel);
+                           *pDest++ = usPixel;
+                       }
+                       break;
+                   case 2:
+                       for (x=0; x<pDraw->iWidth; x+=4) {
+                           c = *s++;
+                           for (j=0; j<4; j++) { // work on pairs of bits
+                               usPixel = pDraw->pFastPalette[c >> 6];
+                               if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                                   usPixel = __builtin_bswap16(usPixel);
+                               *pDest++ = usPixel;
+                               c <<= 2;
+                           }
+                       }
+                       break;
+                   case 1:
+                       for (x=0; x<pDraw->iWidth; x+=4) {
+                           c = *s++;
+                           for (j=0; j<8; j++) { // work on pairs of bits
+                               usPixel = pDraw->pFastPalette[c >> 7];
+                               if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                                   usPixel = __builtin_bswap16(usPixel);
+                               *pDest++ = usPixel;
+                               c <<= 1;
+                           }
+                       }
+                       break;
+               } // switch on bpp 
+               return;
+            }
             switch (pDraw->iBpp) {
                 case 8:
                     for (x=0; x<pDraw->iWidth; x++) {
@@ -547,7 +598,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     }
     // Use internal buffer to maintain the current and previous lines
     pCurr = pPage->ucPixels;
-    pPrev = &pPage->ucPixels[PNG_MAX_BUFFERED_PIXELS];
+    pPrev = &pPage->ucPixels[pPage->iPitch+1];
     pPage->iError = PNG_SUCCESS;
     // Start decoding the image
     bDone = FALSE;
@@ -607,6 +658,19 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
             case 0x504c5445: //'PLTE' palette colors
                 memset(&pPage->ucPalette[768], 0xff, 256); // assume all colors are opaque unless specified
                 memcpy(pPage->ucPalette, &s[iOffset], iLen);
+                if (iOptions & PNG_FAST_PALETTE) { // create a RGB565 palette
+                    int i, iColors = 1 << pPage->ucBpp;
+                    uint16_t usPixel, *d;
+                    uint8_t *s = pPage->ucPalette;
+                    d = (uint16_t *)&pPage->ucPixels[sizeof(pPage->ucPixels)-512];
+                    for (i=0; i<iColors; i++) {
+                    usPixel = (s[2] >> 3); // blue
+                    usPixel |= ((s[1] >> 2) << 5); // green
+                    usPixel |= ((s[0] >> 3) << 11); // red
+                    *d++ = usPixel;
+                    s += 3;
+                    }
+                }
                 break;
             case 0x74524e53: //'tRNS' transparency info
                 if (pPage->ucPixelType == PNG_PIXEL_INDEXED) // if palette exists
@@ -663,6 +727,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                                 pngd.iPitch = pPage->iPitch;
                                 pngd.iWidth = pPage->iWidth;
                                 pngd.pPalette = pPage->ucPalette;
+                                pngd.pFastPalette = (iOptions & PNG_FAST_PALETTE) ? (uint16_t *)&pPage->ucPixels[sizeof(pPage->ucPixels)-512] : NULL;
                                 pngd.pPixels = pCurr+1;
                                 pngd.iPixelType = pPage->ucPixelType;
                                 pngd.iBpp = pPage->ucBpp;
