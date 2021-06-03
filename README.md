@@ -42,6 +42,6 @@ The examples folder contains a sketch to measure the performance of decoding a 2
 
 Documentation:<br>
 ---------------<br>
-Detailed information about the API is in the Wiki<br>
+Detailed information about the API is in the [Wiki](https://github.com/bitbank2/PNGdec/wiki)<br>
 See the examples folder for easy starting points<br>
 <br>
