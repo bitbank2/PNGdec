@@ -105,6 +105,7 @@ typedef struct png_draw_tag
     int iPitch; // bytes per line
     int iPixelType; // PNG pixel type (0,2,3,4,6)
     int iBpp; // bits per color stimulus
+    int iHasAlpha; // flag indicating the presence of an alpha palette
     void *pUser; // user supplied pointer
     uint8_t *pPalette;
     uint16_t *pFastPalette;

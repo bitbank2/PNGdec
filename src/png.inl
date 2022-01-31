@@ -265,7 +265,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
             }
             break;
         case PNG_PIXEL_INDEXED: // palette color (can be 1/2/4 or 8 bits per pixel)
-            if (pDraw->pFastPalette) { // faster RGB565 palette exists
+            if (pDraw->pFastPalette && !pDraw->iHasAlpha) { // faster RGB565 palette exists
                switch (pDraw->iBpp) {
                    case 8:
                        for (x=0; x<pDraw->iWidth; x++) {
@@ -317,17 +317,32 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                return;
             }
             switch (pDraw->iBpp) {
-                case 8:
-                    for (x=0; x<pDraw->iWidth; x++) {
-                        c = *s++;
-                        pPal = &pDraw->pPalette[c * 3];
-                        usPixel = (pPal[2] >> 3); // blue
-                        usPixel |= ((pPal[1] >> 2) << 5); // green
-                        usPixel |= ((pPal[0] >> 3) << 11); // red
-                        if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
-                            usPixel = __builtin_bswap16(usPixel);
-                        *pDest++ = usPixel;
-                    }
+                case 8: // 8-bit palette also supports palette alpha
+                    if (pDraw->iHasAlpha) { // use the alpha to modify the palette
+                        for (x=0; x<pDraw->iWidth; x++) {
+                            int a;
+                            c = *s++;
+                            a = pDraw->pPalette[768+c]; // get alpha
+                            pPal = &pDraw->pPalette[c * 3];
+                            usPixel = ((pPal[2] * a) >> 11); // blue
+                            usPixel |= (((pPal[1] * a) >> 10) << 5); // green
+                            usPixel |= (((pPal[0] * a) >> 11) << 11); // red
+                            if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                                usPixel = __builtin_bswap16(usPixel);
+                            *pDest++ = usPixel;
+                        } // for x
+                    } else {
+                        for (x=0; x<pDraw->iWidth; x++) {
+                            c = *s++;
+                            pPal = &pDraw->pPalette[c * 3];
+                            usPixel = (pPal[2] >> 3); // blue
+                            usPixel |= ((pPal[1] >> 2) << 5); // green
+                            usPixel |= ((pPal[0] >> 3) << 11); // red
+                            if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                                usPixel = __builtin_bswap16(usPixel);
+                            *pDest++ = usPixel;
+                        } // for x
+                    } // not alpha palette
                     break;
                 case 4:
                     for (x=0; x<pDraw->iWidth; x+=2) {
@@ -777,6 +792,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                                 pngd.pFastPalette = (iOptions & PNG_FAST_PALETTE) ? (uint16_t *)&pPage->ucPixels[sizeof(pPage->ucPixels)-512] : NULL;
                                 pngd.pPixels = pCurr+1;
                                 pngd.iPixelType = pPage->ucPixelType;
+                                pngd.iHasAlpha = pPage->iHasAlpha;
                                 pngd.iBpp = pPage->ucBpp;
                                 pngd.y = y;
                                 (*pPage->pfnDraw)(&pngd);
