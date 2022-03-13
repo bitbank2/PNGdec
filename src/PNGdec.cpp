@@ -31,7 +31,7 @@ PNG_STATIC uint8_t PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThresho
 //
 // Memory initialization
 //
-int PNG::openRAM(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
+int PNG::openRAM(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK pfnDraw)
 {
     memset(&_png, 0, sizeof(PNGIMAGE));
     _png.ucMemType = PNG_MEM_RAM;
@@ -47,7 +47,7 @@ int PNG::openRAM(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
 //
 // It's necessary to separate out a FLASH version on Harvard architecture machines
 //
-int PNG::openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
+int PNG::openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK pfnDraw)
 {
     memset(&_png, 0, sizeof(PNGIMAGE));
     _png.ucMemType = PNG_MEM_FLASH;
@@ -64,7 +64,7 @@ int PNG::openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
 //
 // File (SD/MMC) based initialization
 //
-int PNG::open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALLBACK *pfnClose, PNG_READ_CALLBACK *pfnRead, PNG_SEEK_CALLBACK *pfnSeek, PNG_DRAW_CALLBACK *pfnDraw)
+int PNG::open(const char *szFilename, PNG_OPEN_CALLBACK pfnOpen, PNG_CLOSE_CALLBACK pfnClose, PNG_READ_CALLBACK pfnRead, PNG_SEEK_CALLBACK pfnSeek, PNG_DRAW_CALLBACK pfnDraw)
 {
     memset(&_png, 0, sizeof(PNGIMAGE));
     _png.pfnRead = pfnRead;
@@ -72,7 +72,7 @@ int PNG::open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALL
     _png.pfnDraw = pfnDraw;
     _png.pfnOpen = pfnOpen;
     _png.pfnClose = pfnClose;
-    _png.PNGFile.fHandle = (*pfnOpen)(szFilename, &_png.PNGFile.iSize);
+    _png.PNGFile.fHandle = pfnOpen(szFilename, &_png.PNGFile.iSize);
     if (_png.PNGFile.fHandle == NULL)
        return 0;
     return PNGInit(&_png);
@@ -180,7 +180,7 @@ uint8_t * PNG::getPalette()
 void PNG::close()
 {
     if (_png.pfnClose)
-        (*_png.pfnClose)(_png.PNGFile.fHandle);
+        _png.pfnClose(_png.PNGFile.fHandle);
 } /* close() */
 
 //
@@ -192,6 +192,15 @@ void PNG::close()
 int PNG::decode(void *pUser, int iOptions)
 {
     return DecodePNG(&_png, pUser, iOptions);
+} /* decode() */
+int PNG::decode(PNG_DRAW_CALLBACK pfnDraw, int iOptions)
+{
+    // Save old draw callback in case calls are mixed
+    PNG_DRAW_CALLBACK old = _png.pfnDraw;
+    _png.pfnDraw = pfnDraw;
+    int ret = DecodePNG(&_png, NULL, iOptions);
+    _png.pfnDraw = old;
+    return ret;
 } /* decode() */
 //
 // Convert a line of native pixels (all supported formats) into RGB565

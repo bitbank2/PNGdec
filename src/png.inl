@@ -61,7 +61,7 @@ static const uint16_t usGrayTo565[] = {0x0000,0x0000,0x0000,0x0000,0x0020,0x0020
 //
 #ifndef __cplusplus
 // C API
-int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
+int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK pfnDraw)
 {
     pPNG->iError = PNG_SUCCESS;
     pPNG->pfnRead = readMem;
@@ -75,7 +75,7 @@ int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK
 } /* PNG_openRAM() */
 
 #ifdef __LINUX__
-int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK *pfnDraw)
+int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK pfnDraw)
 {
     pPNG->iError = PNG_SUCCESS;
     pPNG->pfnRead = readFile;
@@ -95,7 +95,7 @@ int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK *pfnD
 void PNG_close(PNGIMAGE *pPNG)
 {
     if (pPNG->pfnClose)
-        (*pPNG->pfnClose)(pPNG->PNGFile.fHandle);
+        pPNG->pfnClose(pPNG->PNGFile.fHandle);
 } /* PNG_close() */
 
 int PNG_getWidth(PNGIMAGE *pPNG)
@@ -488,7 +488,7 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
     
     pPage->iHasAlpha = pPage->iInterlaced = 0;
     // Read a few bytes to just parse the size/pixel info
-    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, 32);
+    iBytesRead = pPage->pfnRead(&pPage->PNGFile, s, 32);
     if (iBytesRead < 32) { // a PNG file this tiny? probably bad
         pPage->iError = PNG_INVALID_FILE;
         return pPage->iError;
@@ -685,8 +685,8 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     iFileOffset = 8; // skip PNG file signature
     iOffset = 0; // internal buffer offset starts at 0
     // Read some data to start
-    (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
-    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
+    pPage->pfnSeek(&pPage->PNGFile, iFileOffset);
+    iBytesRead = pPage->pfnRead(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
     iFileOffset += iBytesRead;
     y = 0;
     d_stream.avail_out = 0;
@@ -757,7 +757,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 while (iLen) {
                     if (iOffset >= iBytesRead) {
                         // we ran out of data; get some more
-                        iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf, (iLen > PNG_FILE_BUF_SIZE) ? PNG_FILE_BUF_SIZE : iLen);
+                        iBytesRead = pPage->pfnRead(&pPage->PNGFile, pPage->ucFileBuf, (iLen > PNG_FILE_BUF_SIZE) ? PNG_FILE_BUF_SIZE : iLen);
                         iFileOffset += iBytesRead;
                         iOffset = 0;
                     } else {
@@ -795,7 +795,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                                 pngd.iHasAlpha = pPage->iHasAlpha;
                                 pngd.iBpp = pPage->ucBpp;
                                 pngd.y = y;
-                                (*pPage->pfnDraw)(&pngd);
+                                pPage->pfnDraw(&pngd);
                             } else {
                                 // copy to destination bitmap
                                 memcpy(&pPage->pImage[y * pPage->iPitch], &pCurr[1], pPage->iPitch);
@@ -822,7 +822,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 } // while (iLen)
                 if (y != pPage->iHeight && iFileOffset < pPage->PNGFile.iSize) {
                     // need to read more IDAT chunks
-                    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
+                    iBytesRead = pPage->pfnRead(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
                     iFileOffset += iBytesRead;
                     iOffset = 0;
                 }
@@ -859,8 +859,8 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
         iOffset += (iLen + 4); // skip data + CRC
         if (iOffset > iBytesRead-8) { // need to read more data
             iFileOffset += (iOffset - iBytesRead);
-            (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
-            iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
+            pPage->pfnSeek(&pPage->PNGFile, iFileOffset);
+            iBytesRead = pPage->pfnRead(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
             iFileOffset += iBytesRead;
             iOffset = 0;
         }

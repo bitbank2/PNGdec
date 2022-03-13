@@ -31,6 +31,9 @@
 #else
 #include <Arduino.h>
 #endif
+#ifdef __cplusplus
+#include <functional>
+#endif
 #include "zutil.h"
 #include "inftrees.h"
 #include "inflate.h"
@@ -121,11 +124,19 @@ typedef struct png_file_tag
 } PNGFILE;
 
 // Callback function prototypes
-typedef int32_t (PNG_READ_CALLBACK)(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
-typedef int32_t (PNG_SEEK_CALLBACK)(PNGFILE *pFile, int32_t iPosition);
-typedef void * (PNG_OPEN_CALLBACK)(const char *szFilename, int32_t *pFileSize);
-typedef void (PNG_DRAW_CALLBACK)(PNGDRAW *);
-typedef void (PNG_CLOSE_CALLBACK)(void *pHandle);
+#ifdef __cplusplus
+typedef std::function<int32_t(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen)> PNG_READ_CALLBACK;
+typedef std::function<int32_t(PNGFILE *pFile, int32_t iPosition)> PNG_SEEK_CALLBACK;
+typedef std::function<void *(const char *szFilename, int32_t *pFileSize)> PNG_OPEN_CALLBACK;
+typedef std::function<void(PNGDRAW *)> PNG_DRAW_CALLBACK;
+typedef std::function<void(void *pHandle)> PNG_CLOSE_CALLBACK;
+#else
+typedef int32_t (*PNG_READ_CALLBACK)(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
+typedef int32_t (*PNG_SEEK_CALLBACK)(PNGFILE *pFile, int32_t iPosition);
+typedef void * (*PNG_OPEN_CALLBACK)(const char *szFilename, int32_t *pFileSize);
+typedef void (*PNG_DRAW_CALLBACK)(PNGDRAW *);
+typedef void (*PNG_CLOSE_CALLBACK)(void *pHandle);
+#endif
 
 //
 // our private structure to hold a JPEG image decode state
@@ -141,11 +152,11 @@ typedef struct png_image_tag
     int iInterlaced;
     uint32_t iTransparent; // transparent color index/value
     int iError;
-    PNG_READ_CALLBACK *pfnRead;
-    PNG_SEEK_CALLBACK *pfnSeek;
-    PNG_OPEN_CALLBACK *pfnOpen;
-    PNG_DRAW_CALLBACK *pfnDraw;
-    PNG_CLOSE_CALLBACK *pfnClose;
+    PNG_READ_CALLBACK pfnRead;
+    PNG_SEEK_CALLBACK pfnSeek;
+    PNG_OPEN_CALLBACK pfnOpen;
+    PNG_DRAW_CALLBACK pfnDraw;
+    PNG_CLOSE_CALLBACK pfnClose;
     PNGFILE PNGFile;
     uint8_t ucZLIB[32768 + sizeof(inflate_state)]; // put this here to avoid needing malloc/free
     uint8_t ucPalette[1024];
@@ -161,11 +172,12 @@ typedef struct png_image_tag
 class PNG
 {
   public:
-    int openRAM(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw);
-    int openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw);
-    int open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALLBACK *pfnClose, PNG_READ_CALLBACK *pfnRead, PNG_SEEK_CALLBACK *pfnSeek, PNG_DRAW_CALLBACK *pfnDraw);
+    int openRAM(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK pfnDraw);
+    int openFLASH(uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK pfnDraw);
+    int open(const char *szFilename, PNG_OPEN_CALLBACK pfnOpen, PNG_CLOSE_CALLBACK pfnClose, PNG_READ_CALLBACK pfnRead, PNG_SEEK_CALLBACK pfnSeek, PNG_DRAW_CALLBACK pfnDraw);
     void close();
     int decode(void *pUser, int iOptions);
+    int decode(PNG_DRAW_CALLBACK pfnDraw, int iOptions);
     int getWidth();
     int getHeight();
     int getBpp();
