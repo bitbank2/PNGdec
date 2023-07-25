@@ -20,6 +20,8 @@
 //===========================================================================
 //
 #include "zlib.h"
+
+
 //
 // Convert 8-bit grayscale into RGB565
 //
@@ -636,6 +638,11 @@ PNG_STATIC int PNGInit(PNGIMAGE *pPNG)
 {
     return PNGParseInfo(pPNG); // gather info for image
 } /* PNGInit() */
+
+int min(int a, int b) { 
+    return a > b ? b : a;
+}
+
 //
 // Decode the PNG file
 //
@@ -645,7 +652,7 @@ PNG_STATIC int PNGInit(PNGIMAGE *pPNG)
 //
 PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 {
-    int err, y, iLen=0;
+    int err, y, iRemainingChunkLen=0;
     int bDone, iOffset, iFileOffset, iBytesRead;
     int iMarker=0;
     uint8_t *tmp, *pCurr, *pPrev;
@@ -694,10 +701,10 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 
     while (y < pPage->iHeight) { // continue until fully decoded
         // parse the markers until the next data block
-    while (!bDone)
+    while (!bDone && y < pPage->iHeight)
     {
-        iLen = MOTOLONG(&s[iOffset]); // chunk length
-        if (iLen < 0 || iLen + (iFileOffset - iBytesRead) > pPage->PNGFile.iSize) // invalid data
+        iRemainingChunkLen = MOTOLONG(&s[iOffset]); // chunk length
+        if (iRemainingChunkLen < 0 || iRemainingChunkLen + (iFileOffset - iBytesRead) > pPage->PNGFile.iSize) // invalid data
         {
             pPage->iError = PNG_DECODE_ERROR;
             return 1;
@@ -709,7 +716,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
             case 0x44474b62: // 'bKGD' DEBUG
                 break;
             case 0x67414d41: //'gAMA'
-                break;
+                break;  
 #ifdef FUTURE
             case 0x6663544C: //'fcTL' frame control block for animated PNG (need to get size of this partial image)
                 pPage->iWidth = MOTOLONG(&pPage->pData[iOffset + 4]); // frame width
@@ -719,7 +726,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 #endif
             case 0x504c5445: //'PLTE' palette colors
                 memset(&pPage->ucPalette[768], 0xff, 256); // assume all colors are opaque unless specified
-                memcpy(pPage->ucPalette, &s[iOffset], iLen);
+                memcpy(pPage->ucPalette, &s[iOffset], iRemainingChunkLen);
                 if (iOptions & PNG_FAST_PALETTE) { // create a RGB565 palette
                     int i, iColors = 1 << pPage->ucBpp;
                     uint16_t usPixel, *d;
@@ -737,15 +744,15 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
             case 0x74524e53: //'tRNS' transparency info
                 if (pPage->ucPixelType == PNG_PIXEL_INDEXED) // if palette exists
                 {
-                    memcpy(&pPage->ucPalette[768], &s[iOffset], iLen);
+                    memcpy(&pPage->ucPalette[768], &s[iOffset], iRemainingChunkLen);
                     pPage->iHasAlpha = 1;
                 }
-                else if (iLen == 2) // for grayscale images
+                else if (iRemainingChunkLen == 2) // for grayscale images
                 {
                     pPage->iTransparent = s[iOffset + 1]; // lower part of 2-byte value is transparent color index
                     pPage->iHasAlpha = 1;
                 }
-                else if (iLen == 6) // transparent color for 24-bpp image
+                else if (iRemainingChunkLen == 6) // transparent color for 24-bpp image
                 {
                     pPage->iTransparent = s[iOffset + 5]; // lower part of 2-byte value is transparent color value
                     pPage->iTransparent |= (s[iOffset + 3] << 8);
@@ -754,26 +761,22 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 }
                 break;
             case 0x49444154: //'IDAT' image data block
-                while (iLen) {
-                    if (iOffset >= iBytesRead) {
+                // While the chunk has not been read completely.
+                while (iRemainingChunkLen) {
+                    if (iOffset >= iBytesRead || iBytesRead == 0) {
                         // we ran out of data; get some more
-                        iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf, (iLen > PNG_FILE_BUF_SIZE) ? PNG_FILE_BUF_SIZE : iLen);
+                        iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf, (iRemainingChunkLen > PNG_FILE_BUF_SIZE) ? PNG_FILE_BUF_SIZE : iRemainingChunkLen);
                         iFileOffset += iBytesRead;
                         iOffset = 0;
                     } else {
+                        // there is still data to inflate.
                         // number of bytes remaining in buffer
-                        iBytesRead -= iOffset;
                     }
                     d_stream.next_in  = &pPage->ucFileBuf[iOffset];
-                    d_stream.avail_in = iBytesRead;
-                    iLen -= iBytesRead;
-                    if (iLen < 0) iLen = 0;
-                    iOffset += iBytesRead;
-            //        if (iMarker == 0x66644154) // data starts at offset 4 in APNG frame data block
-            //        {
-            //            d_stream.next_in += 4;
-            //            d_stream.avail_in -= 4;
-            //        }
+                    d_stream.avail_in = min(iRemainingChunkLen, iBytesRead - iOffset);
+                    iRemainingChunkLen -= d_stream.avail_in;
+                    if (iRemainingChunkLen < 0) iRemainingChunkLen = 0;
+                    iOffset += d_stream.avail_in;
                     err = 0;
                     while (err == Z_OK) {
                         if (d_stream.avail_out == 0) { // reset for next line
@@ -807,20 +810,32 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                             tmp = NULL;
                         }
                     }
-                    if (err == Z_STREAM_END && d_stream.avail_out == 0) {
+                    if (err == Z_STREAM_END && d_stream.avail_out == 0
+                    ) {
                         // successful decode, stop here
-                        y = pPage->iHeight;
-                        bDone = TRUE;
+                        if (y < pPage->iHeight)
+                        {
+                            // missing lines.
+                            pPage->iError = PNG_DECODE_ERROR;
+                            bDone = TRUE;
+                        }
                     } else  if (err == Z_DATA_ERROR || err == Z_STREAM_ERROR) {
-                        iLen = 0; // quit now
-                        y = pPage->iHeight;
+                        // Flush chunk.
+                        iOffset += iRemainingChunkLen;
+                        iRemainingChunkLen = 0;
+                        // mark the error.
                         pPage->iError = PNG_DECODE_ERROR;
                         bDone = TRUE; // force loop to exit with error
                     } else if (err == Z_BUF_ERROR) {
-                        y |= 0; // need more data
+                        iOffset += iRemainingChunkLen;
+                        iRemainingChunkLen = 0;
+                        // need more data
+                    }
+                    else {
+                        //UNEXPECTED ERROR CODE
                     }
                 } // while (iLen)
-                if (y != pPage->iHeight && iFileOffset < pPage->PNGFile.iSize) {
+                if (y != pPage->iHeight && iFileOffset < pPage->PNGFile.iSize && iOffset >= iBytesRead) {
                     // need to read more IDAT chunks
                     iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
                     iFileOffset += iBytesRead;
@@ -856,7 +871,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 break;
 #endif
         } // switch
-        iOffset += (iLen + 4); // skip data + CRC
+        iOffset += (iRemainingChunkLen + 4); // skip data + CRC
         if (iOffset > iBytesRead-8) { // need to read more data
             iFileOffset += (iOffset - iBytesRead);
             (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
