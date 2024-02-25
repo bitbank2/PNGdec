@@ -85,6 +85,10 @@
 #include "inflate.h"
 #include "inffast.h"
 
+#if (INTPTR_MAX == INT64_MAX) || defined(HAL_ESP32_HAL_H_) || defined(TEENSYDUINO) || defined(ARM_MATH_CM4) || defined(ARM_MATH_CM7)
+#define ALLOWS_UNALIGNED
+#endif
+
 #ifdef MAKEFIXED
 #  ifndef BUILDFIXED
 #    define BUILDFIXED
@@ -1191,9 +1195,38 @@ int check_crc;
             if (copy > left) copy = left;
             left -= copy;
             state->length -= copy;
+#ifdef ALLOWS_UNALIGNED
+            {
+                uint8_t *pEnd = put+copy;
+                int overlap = (int)(intptr_t)(put-from);
+                if (overlap >= 4) { // overlap of source/dest won't impede normal copy
+                    while (put < pEnd) {
+                        *(uint32_t *)put = *(uint32_t *)from;
+                        put += 4;
+                        from += 4;
+                    }
+                    // correct for possible overshoot of destination ptr
+                    put = pEnd;
+                } else if (overlap == 1) { // copy 1-byte pattern
+                    uint32_t pattern = *from;
+                    pattern = pattern | (pattern << 8);
+                    pattern = pattern | (pattern << 16);
+                    while (put < pEnd) {
+                        *(uint32_t *)put = pattern;
+                        put += 4;
+                    }
+                    put = pEnd; // correct possible overshoot
+                } else { // overlap of 2 or 3
+                    while (put < pEnd) {
+                        *put++ = *from++;
+                    }
+                }
+            }
+#else
             do {
                 *put++ = *from++;
             } while (--copy);
+#endif // ALLOWS_UNALIGNED
             if (state->length == 0) state->mode = LEN;
             break;
         case LIT:
