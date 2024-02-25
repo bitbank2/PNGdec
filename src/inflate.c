@@ -1200,13 +1200,14 @@ int check_crc;
                 uint8_t *pEnd = put+copy;
                 int overlap = (int)(intptr_t)(put-from);
                 if (overlap >= 4) { // overlap of source/dest won't impede normal copy
-                    while (put < pEnd) {
+                    while (put < pEnd-3) { // overwriting the output buffer here would be bad, so respect the true length
                         *(uint32_t *)put = *(uint32_t *)from;
                         put += 4;
                         from += 4;
                     }
-                    // correct for possible overshoot of destination ptr
-                    put = pEnd;
+                    while (put < pEnd) { // tail end
+                        *put++ = *from++;
+                    }
                 } else if (overlap == 1) { // copy 1-byte pattern
                     uint32_t pattern = *from;
                     pattern = pattern | (pattern << 8);
