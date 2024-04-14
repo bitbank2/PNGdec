@@ -782,11 +782,19 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                         // number of bytes remaining in buffer
                         iBytesRead -= iOffset;
                     }
-                    d_stream.next_in  = &pPage->ucFileBuf[iOffset];
-                    d_stream.avail_in = iBytesRead;
-                    iLen -= iBytesRead;
-                    if (iLen < 0) iLen = 0;
-                    iOffset += iBytesRead;
+                    if (iBytesRead > iLen) { // we read too much
+                        d_stream.next_in  = &pPage->ucFileBuf[iOffset];
+                        d_stream.avail_in = iLen;
+                        iOffset += iLen; // point to start of next marker
+                        iBytesRead -= iLen; // keep remaining byte count
+                        iLen = 0; // every byte will be decoded
+                    } else {
+                        d_stream.next_in  = &pPage->ucFileBuf[iOffset];
+                        d_stream.avail_in = iBytesRead;
+                        iLen -= iBytesRead;
+                        iOffset += iBytesRead;
+                        iBytesRead = 0;
+                    }
             //        if (iMarker == 0x66644154) // data starts at offset 4 in APNG frame data block
             //        {
             //            d_stream.next_in += 4;
@@ -840,9 +848,15 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 } // while (iLen)
                 if (y != pPage->iHeight && iFileOffset < pPage->PNGFile.iSize) {
                     // need to read more IDAT chunks
-                    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
-                    iFileOffset += iBytesRead;
-                    iOffset = 0;
+                    if (iBytesRead) { // data remaining in buffer
+                        // move the data down
+                        memmove(pPage->ucFileBuf, &pPage->ucFileBuf[iOffset], iBytesRead);
+                        iOffset = 0;
+                    } else {
+                        iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
+                        iFileOffset += iBytesRead;
+                        iOffset = 0;
+                    }
                 }
                 break;
                 //               case 0x69545874: //'iTXt'
