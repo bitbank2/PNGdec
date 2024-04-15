@@ -228,7 +228,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
 {
     int x, j;
     uint16_t usPixel, *pDest = pPixels;
-    uint8_t c, a, *pPal, *s = pDraw->pPixels;
+    uint8_t c=0, a, *pPal, *s = pDraw->pPixels;
     
     switch (pDraw->iPixelType) {
         case PNG_PIXEL_GRAY_ALPHA:
@@ -629,7 +629,7 @@ PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iPitch)
                    b = *pPrev++;
                    p = b - c;
                    pc = a - c;
-                    // asume no native ABS() instruction
+                    // assume no native ABS() instruction
                    pa = p < 0 ? -p : p;
                    pb = pc < 0 ? -pc : pc;
                    pc = (p + pc) < 0 ? -(p + pc) : p + pc;

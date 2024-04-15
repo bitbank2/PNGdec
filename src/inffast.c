@@ -306,7 +306,7 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                     {
                         uint8_t *pEnd = out+len;
                         int overlap = (int)(intptr_t)(out-from);
-                        if (overlap >= 4) { // overlap of source/dest won't impede normal copy
+                        if (overlap > 4) { // overlap of source/dest won't impede normal copy
                             while (out < pEnd) {
                                 *(uint32_t *)out = *(uint32_t *)from;
                                 out += 4;
@@ -314,10 +314,15 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                             }
                             // correct for possible overshoot of destination ptr
                             out = pEnd;
-                        } else if (overlap == 1) { // copy 1-byte pattern
-                            uint32_t pattern = *from;
-                            pattern = pattern | (pattern << 8);
-                            pattern = pattern | (pattern << 16);
+                        } else if (overlap == 1 || overlap == 4) { // copy 1/4-byte patterns
+                            uint32_t pattern;
+                            if (overlap == 1) {
+                                pattern = *from;
+                                pattern = pattern | (pattern << 8);
+                                pattern = pattern | (pattern << 16);
+                            } else {
+                                pattern = *(uint32_t *)from;
+                            }
                             while (out < pEnd) {
                                 *(uint32_t *)out = pattern;
                                 out += 4;
