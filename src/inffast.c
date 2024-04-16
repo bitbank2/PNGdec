@@ -8,24 +8,13 @@
 #include "inflate.h"
 #include "inffast.h"
 
-#if (INTPTR_MAX == INT64_MAX) || defined(HAL_ESP32_HAL_H_) || defined(TEENSYDUINO) || defined(ARM_MATH_CM4) || defined(ARM_MATH_CM7)
-#define ALLOWS_UNALIGNED
-#endif
-
-#if INTPTR_MAX == INT64_MAX
-#define REGISTER_WIDTH 64
-typedef uint64_t BIGUINT;
-typedef uint32_t SMALLUINT;
-#else
-#define REGISTER_WIDTH 32
-typedef uint32_t BIGUINT;
-typedef uint16_t SMALLUINT;
-#endif // native register size
-
 #ifdef ASMINF
 #  pragma message("Assembler code may have bugs -- use at your own risk")
 #else
 
+#if (INTPTR_MAX == INT64_MAX) || defined(HAL_ESP32_HAL_H_) || defined(TEENSYDUINO) || defined(ARM_MATH_CM4) || defined(ARM_MATH_CM7)
+#define ALLOWS_UNALIGNED
+#endif
 /*
    Decode literal, length, and distance codes and write out the resulting
    literal and match bytes until either not enough input or output is
@@ -61,10 +50,7 @@ typedef uint16_t SMALLUINT;
       requires strm->avail_out >= 258 for each loop to avoid checking for
       output space.
  */
-void ZLIB_INTERNAL inflate_fast(strm, start)
-z_streamp strm;
-unsigned start;         /* inflate()'s starting value for strm->avail_out */
-{
+void ZLIB_INTERNAL inflate_fast(z_streamp strm, unsigned start) {
     struct inflate_state FAR *state;
     z_const unsigned char FAR *in;      /* local strm->next_in */
     z_const unsigned char FAR *last;    /* have enough input while in < last */
@@ -78,14 +64,13 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
     unsigned whave;             /* valid bytes in the window */
     unsigned wnext;             /* window write index */
     unsigned char FAR *window;  /* allocated sliding window, if wsize != 0 */
-    BIGUINT hold, tmpbits;         /* local strm->hold */
-//    unsigned long hold;         /* local strm->hold */
+    unsigned long hold;         /* local strm->hold */
     unsigned bits;              /* local strm->bits */
     code const FAR *lcode;      /* local strm->lencode */
     code const FAR *dcode;      /* local strm->distcode */
     unsigned lmask;             /* mask for first level of length codes */
     unsigned dmask;             /* mask for first level of distance codes */
-    code here;                  /* retrieved table entry */
+    code const *here;           /* retrieved table entry */
     unsigned op;                /* code bits, operation, extra bits, or */
                                 /*  window position, window bytes to copy */
     unsigned len;               /* match length, unused bytes */
@@ -116,84 +101,60 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
     /* decode literals and length/distances until end-of-block or not enough
        input data or output space */
     do {
-        if (bits < (REGISTER_WIDTH/2)) { // helps on 32 and 64-bit CPUs
-#ifdef ALLOWS_UNALIGNED
-            tmpbits = *(SMALLUINT *)in;
-            hold |= (BIGUINT)(tmpbits << bits);
-            in += sizeof(SMALLUINT);
-            bits += (REGISTER_WIDTH / 2);
-#else
+        if (bits < 15) {
             hold += (unsigned long)(*in++) << bits;
             bits += 8;
             hold += (unsigned long)(*in++) << bits;
             bits += 8;
-#endif
         }
-        here = lcode[hold & lmask];
+        here = lcode + (hold & lmask);
       dolen:
-        op = (unsigned)(here.bits);
+        op = (unsigned)(here->bits);
         hold >>= op;
         bits -= op;
-        op = (unsigned)(here.op);
+        op = (unsigned)(here->op);
         if (op == 0) {                          /* literal */
-            Tracevv((stderr, here.val >= 0x20 && here.val < 0x7f ?
+            Tracevv((stderr, here->val >= 0x20 && here->val < 0x7f ?
                     "inflate:         literal '%c'\n" :
-                    "inflate:         literal 0x%02x\n", here.val));
-            *out++ = (unsigned char)(here.val);
+                    "inflate:         literal 0x%02x\n", here->val));
+            *out++ = (unsigned char)(here->val);
         }
         else if (op & 16) {                     /* length base */
-            len = (unsigned)(here.val);
+            len = (unsigned)(here->val);
             op &= 15;                           /* number of extra bits */
             if (op) {
-#if REGISTER_WIDTH == 32
                 if (bits < op) {
-                    hold += (uint32_t)(*in++) << bits;
+                    hold += (unsigned long)(*in++) << bits;
                     bits += 8;
                 }
-#endif
                 len += (unsigned)hold & ((1U << op) - 1);
                 hold >>= op;
                 bits -= op;
             }
             Tracevv((stderr, "inflate:         length %u\n", len));
-            if (bits < (REGISTER_WIDTH/2)) { // helps on 32 and 64-bit CPUs
-#ifdef UNALIGNED_OK
-                tmpbits = *(SMALLUINT *)in;
-                hold |= (BIGUINT)(tmpbits << bits);
-                in += sizeof(SMALLUINT);
-                bits += (REGISTER_WIDTH / 2);
-#else
+            if (bits < 15) {
                 hold += (unsigned long)(*in++) << bits;
                 bits += 8;
                 hold += (unsigned long)(*in++) << bits;
                 bits += 8;
-#endif
             }
-            here = dcode[hold & dmask];
+            here = dcode + (hold & dmask);
           dodist:
-            op = (unsigned)(here.bits);
+            op = (unsigned)(here->bits);
             hold >>= op;
             bits -= op;
-            op = (unsigned)(here.op);
+            op = (unsigned)(here->op);
             if (op & 16) {                      /* distance base */
-                dist = (unsigned)(here.val);
+                dist = (unsigned)(here->val);
                 op &= 15;                       /* number of extra bits */
-#if REGISTER_WIDTH == 32
                 if (bits < op) {
-#ifdef ALLOWS_UNALIGNED
-                    hold |= (*(uint16_t *)in << bits);
-                    bits += 16;
-                    in += 2;
-#else
                     hold += (unsigned long)(*in++) << bits;
                     bits += 8;
-                    if (bits < op) { // this is NEVER true
+                    if (bits < op) {
                         hold += (unsigned long)(*in++) << bits;
                         bits += 8;
                     }
-#endif // ALLOWS_UNALIGNED
                 }
-#endif // 32-bit CPU
                 dist += (unsigned)hold & ((1U << op) - 1);
 #ifdef INFLATE_STRICT
                 if (dist > dmax) {
@@ -350,7 +311,7 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                 }
             }
             else if ((op & 64) == 0) {          /* 2nd level distance code */
-                here = dcode[here.val + (hold & ((1U << op) - 1))];
+                here = dcode + here->val + (hold & ((1U << op) - 1));
                 goto dodist;
             }
             else {
@@ -360,7 +321,7 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
             }
         }
         else if ((op & 64) == 0) {              /* 2nd level length code */
-            here = lcode[here.val + (hold & ((1U << op) - 1))];
+            here = lcode + here->val + (hold & ((1U << op) - 1));
             goto dolen;
         }
         else if (op & 32) {                     /* end-of-block */
@@ -376,10 +337,10 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
     } while (in < last && out < end);
 
     /* return unused bytes (on entry, bits < 8, so in won't go too far back) */
-//    len = bits >> 3;
-//    in -= len;
-//    bits -= len << 3;
-//    hold &= (1 << bits) - 1;
+    len = bits >> 3;
+    in -= len;
+    bits -= len << 3;
+    hold &= (1U << bits) - 1;
 
     /* update state and return */
     strm->next_in = in;
