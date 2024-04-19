@@ -219,6 +219,15 @@ PNG_STATIC uint8_t PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThresho
     } // switch on pixel type
     return cHasOpaque; // let the caller know if any pixels are opaque
 } /* PNGMakeMask() */
+#ifdef ARDUINO_ESP32S3_DEV
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+void s3_rgb565(uint8_t *pSrc, uint8_t *pDest, int iCount, bool bBigEndian);
+#ifdef __cplusplus
+};
+#endif
+#endif
 //
 // Convert a line of native PNG pixels into RGB565
 // handles all standard pixel types
@@ -444,6 +453,9 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     s += 4; // skip alpha
                 }
             } else { // ignore alpha
+#ifdef ARDUINO_ESP32S3_DEV
+                s3_rgb565(s, (uint8_t *)pDest, pDraw->iWidth, (iEndiannes == PNG_RGB565_BIG_ENDIAN));
+#else
                 for (x=0; x<pDraw->iWidth; x++) {
                     usPixel = (s[2] >> 3); // blue
                     usPixel |= ((s[1] >> 2) << 5); // green
@@ -453,6 +465,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     *pDest++ = usPixel;
                     s += 4; // skip alpha
                 }
+#endif
             }
             break;
     }
@@ -677,8 +690,13 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
         return 0;
     }
     // Use internal buffer to maintain the current and previous lines
-    pCurr = pPage->ucPixels;
-    pPrev = &pPage->ucPixels[pPage->iPitch+1];
+    y = (int)(intptr_t)&pPage->ucPixels[0];
+    y &= 15; // make sure we're 16-byte aligned, -1 for filter byte
+    y += (15 - y);
+    pCurr = &pPage->ucPixels[y]; // so that the pixels are 16-byte aligned
+    y += pPage->iPitch + 1; // both lines are 16-byte (minus 1)
+    y += (15 - (y & 15));
+    pPrev = &pPage->ucPixels[y];
     pPage->iError = PNG_SUCCESS;
     // Start decoding the image
     bDone = FALSE;
