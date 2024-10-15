@@ -12,7 +12,7 @@
 #  pragma message("Assembler code may have bugs -- use at your own risk")
 #else
 
-#if (INTPTR_MAX == INT64_MAX) || defined(HAL_ESP32_HAL_H_) || defined(TEENSYDUINO) || defined(ARM_MATH_CM4) || defined(ARM_MATH_CM7)
+#if ((INTPTR_MAX == INT64_MAX) || defined(HAL_ESP32_HAL_H_) || defined(TEENSYDUINO) || defined(ARM_MATH_CM4) || defined(ARM_MATH_CM7)) && !defined(ARDUINO_ARCH_RP2040)
 #define ALLOWS_UNALIGNED
 #endif
 /*
