@@ -851,7 +851,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                             tmp = NULL;
                         }
                     }
-                    if (err == Z_STREAM_END && d_stream.avail_out == 0) {
+                    if (err == Z_STREAM_END) {
                         // successful decode, stop here
                         y = pPage->iHeight;
                         bDone = TRUE;
