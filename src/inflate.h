@@ -16,6 +16,9 @@
 #  define GUNZIP
 #endif
 
+#ifndef __INFLATE_H__
+#define __INFLATE_H__
+
 /* Possible inflate modes between inflate() calls */
 typedef enum {
     HEAD = 16180,   /* i: waiting for magic header */
@@ -124,3 +127,4 @@ struct inflate_state {
     int back;                   /* bits back of last unprocessed length/lit */
     unsigned was;               /* initial length of match */
 };
+#endif // __INFLATE_H__
