@@ -33,7 +33,7 @@ Feature summary:<br>
 
 How fast is it?<br>
 ---------------<br>
-The examples folder contains a sketch to measure the performance of decoding a 240x200 image of varying bit depths. Here's the results when run on a few common MCUs:<br>
+For most PNG images, the time is split about 50/50 between inflate and de-filtering. Indexed images usually don't enable filtering, so it becomes nearly 100% the inflator. Converting the output to RGB565 can take significant cycles if doing alpha blending. The examples folder contains a sketch to measure the performance of decoding a 240x200 image of varying bit depths. Here's the results when run on a few common MCUs:<br>
 
 <br>
 <p align="center">
