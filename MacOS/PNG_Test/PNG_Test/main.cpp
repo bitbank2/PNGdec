@@ -20,11 +20,16 @@
 #include "../../../src/PNGdec.cpp"
 
 #include "../../../test_images/octocat_8bpp.h"
+#include "../../../test_images/octocat.h"
 PNG png;
 int xoff, yoff, iBpp;
 int iWidth, iLines;
 uint32_t palentry24;
 uint16_t palentry16;
+uint32_t u32BG;
+uint16_t u16Out;
+uint8_t ucPixelType;
+
 //
 // Return the current time in microseconds
 //
@@ -47,11 +52,17 @@ typedef struct my_private_struct
 {
   int xoff, yoff; // corner offset
 } PRIVATE;
-
+// Second draw callback for testing conversion to RGB565
+void PNGDraw2(PNGDRAW *pDraw)
+{
+uint16_t usPixels[320];
+    png.getLineAsRGB565(pDraw, usPixels, ucPixelType, u32BG);
+    if (pDraw->y == 0) { // get first pixel of first line for testing
+        u16Out = usPixels[0];
+    }
+} /* PNGDraw2() */
 void PNGDraw(PNGDRAW *pDraw)
 {
-//uint16_t usPixels[320];
-//uint8_t ucMask[40];
 PRIVATE *pPriv = (PRIVATE *)pDraw->pUser;
     
     if (pPriv) {
@@ -66,10 +77,6 @@ PRIVATE *pPriv = (PRIVATE *)pDraw->pUser;
     iBpp = pDraw->iBpp;
     iWidth = pDraw->iWidth;
     iLines++;
-//  png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
-//  if (png.getAlphaMask(pDraw, ucMask, 255)) { // if any pixels are opaque, draw them
-//    spilcdWritePixelsMasked(&lcd, pPriv->xoff, pPriv->yoff + pDraw->y, (uint8_t *)usPixels, ucMask, pDraw->iWidth, DRAW_TO_LCD);
-//  }
 } /* PNGDraw() */
 
 //
@@ -215,6 +222,43 @@ int main(int argc, const char * argv[]) {
         PNGLOG(__LINE__, szTestName, " - FAILED");
     }
     free(pFrameBuffer);
+    // Test 8 - check 8-bit to RGB565 conversion and alpha blending
+    ucPixelType = PNG_RGB565_BIG_ENDIAN;
+    u32BG = 0x00ff00; // set background color to pure green
+    szTestName = (char *)"PNG Verify 8-bit to RGB565 output";
+    iTotal++;
+    PNGLOG(__LINE__, szTestName, szStart);
+    u16Out = 0xffff;
+    png.openFLASH((uint8_t *)octocat_8bpp, sizeof(octocat_8bpp), PNGDraw2);
+    png.setBuffer(NULL);
+    png.decode(NULL, 0);
+    png.close();
+    if (u16Out == 0xe007) { // check transparnet pixel (0,0) to see if it matches the 32-bit BG color we asked for
+        iTotalPass++;
+        PNGLOG(__LINE__, szTestName, " - PASSED");
+    } else {
+        iTotalFail++;
+        PNGLOG(__LINE__, szTestName, " - FAILED");
+    }
+    // Test 9 - check 32-bit to RGB565 conversion and alpha blending
+    ucPixelType = PNG_RGB565_BIG_ENDIAN;
+    u32BG = 0xff0000; // set background color to pure blue
+    szTestName = (char *)"PNG Verify 32-bit to RGB565 output";
+    iTotal++;
+    PNGLOG(__LINE__, szTestName, szStart);
+    u16Out = 0xffff;
+    png.openFLASH((uint8_t *)octocat_8bpp, sizeof(octocat_8bpp), PNGDraw2);
+    png.setBuffer(NULL);
+    png.decode(NULL, 0);
+    png.close();
+    if (u16Out == 0x1f00) { // check transparnet pixel (0,0) to see if it matches the 32-bit BG color we asked for
+        iTotalPass++;
+        PNGLOG(__LINE__, szTestName, " - PASSED");
+    } else {
+        iTotalFail++;
+        PNGLOG(__LINE__, szTestName, " - FAILED");
+    }
+
     // FUZZ testing
     // Randomize the input data (file header and compressed data) and confirm that the library returns an error code
     // and doesn't have an invalid pointer exception
