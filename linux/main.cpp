@@ -127,6 +127,7 @@ int main(int argc, const char * argv[]) {
         printf("image specs: (%d x %d), %d bpp, pixel type: %d\n", png.getWidth(), png.getHeight(), png.getBpp(), png.getPixelType());
         png.setBuffer((uint8_t *)malloc(png.getBufferSize()));
         rc = png.decode(NULL, 0); //PNG_CHECK_CRC);
+        printf("decode returned: %d\n", rc);
         i = 1;
         pPalette = NULL;
         switch (png.getPixelType()) {
