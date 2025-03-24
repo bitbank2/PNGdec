@@ -3,9 +3,9 @@
 //
 // This sketch shows how to use the new helper class, PNGDisplay to more easily
 // display PNG images on displays supported by my bb_spi_lcd library
-// There is only one overloaded method exposed by the library: loadPNG()
-// It allows you to pass PNG image data as a pointer or a filename on a uSD card
-// Both require a x,y position for where to draw the image. This code doesn't
+// There are only two overloaded methods exposed by the library: loadPNG(), getPNGInfo()
+// They allow you to pass PNG image data as a pointer or a filename on a uSD card
+// loadPNG() requires a x,y position for where to draw the image. This code doesn't
 // currently support clipping, so attempts to draw off the edge of the display
 // will return with an error.
 // An optional background color can be specified for PNGs with an alpha channel

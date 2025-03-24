@@ -19,7 +19,6 @@ PNG *pPNG;
 static File myfile;
 
 static void * myOpen(const char *filename, int32_t *size) {
-  Serial.printf("Attempting to open %s\n", filename);
   myfile = SD.open(filename);
   *size = myfile.size();
   return &myfile;
@@ -59,6 +58,7 @@ uint32_t *png_info;
         pLCD->setAddrWindow(x, y, w, h);
         png->decode((void *)png_info, 0); // simple decode, no options
         png->close();
+        free(png_info);
         free(png);
         return 1;
    }
@@ -89,6 +89,7 @@ int PNGDisplay::loadPNG(BB_SPI_LCD *pLCD, int x, int y, const char *fname, uint3
         pLCD->setAddrWindow(x, y, w, h);
         png->decode((void *)png_info, 0); // simple decode, no options
         png->close();
+        free(png_info);
         free(png);
         return 1;
     }
@@ -100,7 +101,6 @@ int PNGDisplay::getPNGInfo(int *width, int *height, int *bpp, const void *pData,
 {
     PNG *png;
     int rc;
-    uint32_t *png_info;
 
     if (!width || !height || !bpp || !pData || iDataSize < 32) return 0;
     
@@ -122,7 +122,6 @@ int PNGDisplay::getPNGInfo(int *width, int *height, int *bpp, const char *fname)
 {
     PNG *png;
     int rc;
-    uint32_t *png_info;
 
     if (!width || !height || !bpp || !fname) return 0;
     png = (PNG *)malloc(sizeof(PNG));
