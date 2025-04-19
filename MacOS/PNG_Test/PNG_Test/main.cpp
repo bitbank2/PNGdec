@@ -11,16 +11,22 @@
 #include <stdlib.h>
 #include <time.h>
 #define __LINUX__
+#define ZLIB_DEBUG
+#define verbose 0
+#define INFLATE_STRICT
 #include "../../../src/zutil.c"
 #include "../../../src/inflate.c"
 #include "../../../src/inffast.c"
 #include "../../../src/inftrees.c"
 #include "../../../src/crc32.c"
+#undef DO1
+#undef DO8
 #include "../../../src/adler32.c"
 #include "../../../src/PNGdec.cpp"
 
 #include "../../../test_images/octocat_8bpp.h"
 #include "../../../test_images/octocat.h"
+#include "../../../test_images/bugpng.h"
 PNG png;
 int xoff, yoff, iBpp;
 int iWidth, iLines;
@@ -99,6 +105,38 @@ int main(int argc, const char * argv[]) {
     const char *szStart = " - START";
 
     iTotalPass = iTotalFail = iTotal = 0;
+
+    // Test 0 - Correct file read continuation
+    iTotal++;
+    szTestName = (char *)"Test Continuation";
+    PNGLOG(__LINE__, szTestName, szStart);
+    rc = png.openFLASH((uint8_t *)bugpng, sizeof(bugpng), PNGDraw);
+    if (rc == PNG_SUCCESS) {
+        w = png.getWidth();
+        h = png.getHeight();
+        priv.xoff = w/2; // arbitrary values to see if they get passed properly
+        priv.yoff = h/2;
+        xoff = yoff = 0;
+        rc = png.decode(&priv, 0);
+        if (rc == PNG_SUCCESS) {
+            if (xoff == priv.xoff && yoff == priv.yoff) {
+                iTotalPass++;
+                PNGLOG(__LINE__, szTestName, " - PASSED");
+            } else {
+                iTotalFail++;
+                PNGLOG(__LINE__, szTestName, " - FAILED");
+            }
+        } else {
+            PNGLOG(__LINE__, szTestName, "Error decoding");
+            iTotalFail++;
+            PNGLOG(__LINE__, szTestName, " - FAILED");
+        }
+    } else {
+        PNGLOG(__LINE__, szTestName, "Error opening PNG file.");
+        iTotalFail++;
+        PNGLOG(__LINE__, szTestName, " - FAILED");
+    }
+
     // Test 1 - Test User pointer";
     iTotal++;
     szTestName = (char *)"Test User pointer";
