@@ -572,8 +572,8 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
     
     pPage->iHasAlpha = pPage->iInterlaced = 0;
     // Read a few bytes to just parse the size/pixel info
-    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, 32);
-    if (iBytesRead < 32) { // a PNG file this tiny? probably bad
+    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, 33);
+    if (iBytesRead < 33) { // a PNG file this tiny? probably bad
         pPage->iError = PNG_INVALID_FILE;
         return pPage->iError;
     }
@@ -583,6 +583,17 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
         return pPage->iError;
     }
     if (MOTOLONG(&s[12]) == 0x49484452/*'IHDR'*/) {
+        int len = MOTOLONG(&s[8]);
+        if (len != 13) {
+            pPage->iError = PNG_INVALID_FILE;
+            return pPage->iError;
+        }
+        int crc = crc32(0, &s[12], len+4);
+        int hdrcrc = MOTOLONG(&s[16+len]);
+        if (len != 13 || crc != hdrcrc) {
+            pPage->iError = PNG_INVALID_FILE;
+            return pPage->iError;
+        }
         pPage->iWidth = MOTOLONG(&s[16]);
         pPage->iHeight = MOTOLONG(&s[20]);
         pPage->ucBpp = s[24]; // bits per pixel
@@ -773,10 +784,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     
     iFileOffset = 8; // skip PNG file signature
     iOffset = 0; // internal buffer offset starts at 0
-    // Read some data to start
-    (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
-    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
-    iFileOffset += iBytesRead;
+    iBytesRead = 0; // We haven't read yet anything
     y = 0;
     d_stream.avail_out = 0;
     d_stream.next_out = pPage->pImage;
@@ -785,6 +793,18 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     // parse the markers until the next data block
     while (!bDone && y < pPage->iHeight)
     {
+        if (iOffset > iBytesRead-8) { // need to read more data
+            iFileOffset += (iOffset - iBytesRead);
+            (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
+            iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
+            if (iBytesRead < 8) {
+                pPage->iError = PNG_DECODE_ERROR;
+                return 1;
+            }
+            iFileOffset += iBytesRead;
+            iOffset = 0;
+        }
+
         iLen = MOTOLONG(&s[iOffset]); // chunk length
         if (iLen < 0 || iLen + (iFileOffset - iBytesRead) > pPage->PNGFile.iSize) // invalid data
         {
@@ -917,17 +937,14 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                         y |= 0; // need more data
                     }
                 } // while (iLen)
-                if (y != pPage->iHeight && iFileOffset < pPage->PNGFile.iSize) {
-                    // need to read more IDAT chunks
-                    if (iBytesRead) { // data remaining in buffer
-                        // move the data down
-                        memmove(pPage->ucFileBuf, &pPage->ucFileBuf[iOffset], iBytesRead);
-                        iOffset = 0;
-                    } else {
-                        iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
-                        iFileOffset += iBytesRead;
-                        iOffset = 0;
-                    }
+                if (iBytesRead) { // data remaining in buffer
+                    // Restore iBytesRead to be total ucFileBuf bytes, not remainder
+                    iBytesRead += iOffset;
+                } else {
+                    // We consumed everything, so move the pointer to the zero.
+                    // We haven't read CRC for the block, but it doesn't matter as
+                    // pfnSeek will move past it to the next chunk.
+                    iOffset = 0;
                 }
                 break;
                 //               case 0x69545874: //'iTXt'
@@ -960,13 +977,6 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 #endif
         } // switch
         iOffset += (iLen + 4); // skip data + CRC
-        if (iOffset > iBytesRead-8) { // need to read more data
-            iFileOffset += (iOffset - iBytesRead);
-            (*pPage->pfnSeek)(&pPage->PNGFile, iFileOffset);
-            iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, PNG_FILE_BUF_SIZE);
-            iFileOffset += iBytesRead;
-            iOffset = 0;
-        }
     } // while y < height
     err = inflateEnd(&d_stream);
     return pPage->iError;
