@@ -21,6 +21,9 @@
 #include <PNGdec.h>
 #include <bb_spi_lcd.h>
 #include <SD.h>
+// To center one or both coordinates for the drawing position
+//  use this constant value
+#define PNGDISPLAY_CENTER -2
 
 class PNGDisplay
 {
@@ -46,24 +49,26 @@ PNG *pPNG;
 } /* PNGDraw() */
 
 // Functions to access a file on the SD card
-static File myfile;
 
-static void * myOpen(const char *filename, int32_t *size) {
-  Serial.printf("Attempting to open %s\n", filename);
+static void * pngOpen(const char *filename, int32_t *size) {
+  static File myfile;
   myfile = SD.open(filename);
   *size = myfile.size();
   return &myfile;
 }
-static void myClose(void *handle) {
-  if (myfile) myfile.close();
+static void pngClose(void *handle) {
+  File *pFile = (File *)handle;
+  if (pFile) pFile->close();
 }
-static int32_t myRead(PNGFILE *handle, uint8_t *buffer, int32_t length) {
-  if (!myfile) return 0;
-  return myfile.read(buffer, length);
+static int32_t pngRead(PNGFILE *handle, uint8_t *buffer, int32_t length) {
+  File *pFile = (File *)handle->fHandle;
+  if (!pFile) return 0;
+  return pFile->read(buffer, length);
 }
-static int32_t mySeek(PNGFILE *handle, int32_t position) {
-  if (!myfile) return 0;
-  return myfile.seek(position);
+static int32_t pngSeek(PNGFILE *handle, int32_t position) {
+  File *pFile = (File *)handle->fHandle;
+  if (!pFile) return 0;
+  return pFile->seek(position);
 }
 
 int PNGDisplay::loadPNG(BB_SPI_LCD *pLCD, int x, int y, const void *pData, int iDataSize, uint32_t bgColor)
@@ -78,8 +83,18 @@ uint32_t *png_info;
     if (rc == PNG_SUCCESS) {
         w = png->getWidth();
         h = png->getHeight();
-        if (x < 0 || w + x > pLCD->width() || y < 0 || y + h > pLCD->height()) {
+        if (x == PNGDISPLAY_CENTER) {
+            x = (pLCD->width() - w)/2;
+            if (x < 0) x = 0;
+        } else if (x < 0 || w + x > pLCD->width()) {
         // clipping is not supported
+            return 0;
+        }
+        if (y == PNGDISPLAY_CENTER) {
+            y = (pLCD->height() - h)/2;
+            if (y < 0) y = 0;
+        } else if (y < 0 || y + h > pLCD->height()) {
+            // clipping is not supported
             return 0;
         }
         png_info = (uint32_t *)malloc((w * sizeof(uint16_t)) + 3 * sizeof(int)); // enough for pixels and 3 32-bit values
@@ -104,13 +119,22 @@ int PNGDisplay::loadPNG(BB_SPI_LCD *pLCD, int x, int y, const char *fname, uint3
 
     png = (PNG *)malloc(sizeof(PNG));
     if (!png) return 0;
-    rc = png->open(fname, myOpen, myClose, myRead, mySeek, PNGDraw);
+    rc = png->open(fname, pngOpen, pngClose, pngRead, pngSeek, PNGDraw);
     if (rc == PNG_SUCCESS) {
         w = png->getWidth();
         h = png->getHeight();
-        if (x < 0 || w + x > pLCD->width() || y < 0 || y + h > pLCD->height()) {
+        if (x == PNGDISPLAY_CENTER) {
+            x = (pLCD->width() - w)/2;
+            if (x < 0) x = 0;
+        } else if (x < 0 || w + x > pLCD->width()) {
            // clipping is not supported
            return 0;
+        }
+        if (y == PNGDISPLAY_CENTER) {
+            y = (pLCD->height() - h)/2;
+            if (y < 0) y = 0;
+        } else if (y < 0 || y + h > pLCD->height()) {
+            return 0;
         }
         png_info = (uint32_t *)malloc((w * sizeof(uint16_t)) + 3 * sizeof(int)); // enough for pixels and 3 32-bit values
         png_info[0] = (uint32_t)pLCD;
@@ -157,7 +181,7 @@ int PNGDisplay::getPNGInfo(int *width, int *height, int *bpp, const char *fname)
     if (!width || !height || !bpp || !fname) return 0;
     png = (PNG *)malloc(sizeof(PNG));
     if (!png) return 0;
-    rc = png->open(fname, myOpen, myClose, myRead, mySeek, PNGDraw);
+    rc = png->open(fname, pngOpen, pngClose, pngRead, pngSeek, PNGDraw);
     if (rc == PNG_SUCCESS) {
         *width = png->getWidth();
         *height = png->getHeight();
