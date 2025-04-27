@@ -20,6 +20,7 @@ The PNG image specification was written at a time when computers had megabytes o
 
 Feature summary:<br>
 ----------------<br>
+- *New* Added PNGDisplay helper class to simplify displaying images on displays supported by my bb_spi_lcd library<br>
 - Runs on any MCU with at least 48K of free RAM<br>
 - No external dependencies (including malloc/free)<br>
 - Decode an image line by line with a callback function<br>

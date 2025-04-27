@@ -21,6 +21,9 @@
 #include <PNGdec.h>
 #include <bb_spi_lcd.h>
 #include <SD.h>
+#include "FS.h"
+#include <LittleFS.h>
+
 // To center one or both coordinates for the drawing position
 //  use this constant value
 #define PNGDISPLAY_CENTER -2
@@ -30,8 +33,10 @@ class PNGDisplay
   public:
     int loadPNG(BB_SPI_LCD *pLCD, int x, int y, const void *pData, int iDataSize, uint32_t bgColor = 0xffffffff);
     int loadPNG(BB_SPI_LCD *pLCD, int x, int y, const char *fname, uint32_t bgColor = 0xffffffff);
+    int loadPNG_LFS(BB_SPI_LCD *pLCD, int x, int y, const char *fname, uint32_t bgColor = 0xffffffff);
     int getPNGInfo(int *width, int *height, int *bpp, const void *pData, int iDataSize);
     int getPNGInfo(int *width, int *height, int *bpp, const char *fname);
+    int getPNGInfo_LFS(int *width, int *height, int *bpp, const char *fname);
 };
 
 static void PNGDraw(PNGDRAW *pDraw)
@@ -55,6 +60,16 @@ static void * pngOpen(const char *filename, int32_t *size) {
   myfile = SD.open(filename);
   *size = myfile.size();
   return &myfile;
+}
+static void * pngOpenLFS(const char *filename, int32_t *size) {
+  static File myfile;
+  myfile = LittleFS.open(filename, FILE_READ);
+  if (myfile) {
+      *size = myfile.size();
+      return &myfile;
+  } else {
+      return NULL;
+  }
 }
 static void pngClose(void *handle) {
   File *pFile = (File *)handle;
@@ -149,6 +164,47 @@ int PNGDisplay::loadPNG(BB_SPI_LCD *pLCD, int x, int y, const char *fname, uint3
     free(png);
     return 0;
 } /* loadPNG() */
+int PNGDisplay::loadPNG_LFS(BB_SPI_LCD *pLCD, int x, int y, const char *fname, uint32_t bgColor)
+{
+    PNG *png;
+    int w, h, rc;
+    uint32_t *png_info;
+
+    if (!LittleFS.begin(false)) {
+        return 0;
+    }
+    png = (PNG *)malloc(sizeof(PNG));
+    if (!png) return 0;
+    rc = png->open(fname, pngOpenLFS, pngClose, pngRead, pngSeek, PNGDraw);
+    if (rc == PNG_SUCCESS) {
+        w = png->getWidth();
+        h = png->getHeight();
+        if (x == PNGDISPLAY_CENTER) {
+            x = (pLCD->width() - w)/2;
+            if (x < 0) x = 0;
+        } else if (x < 0 || w + x > pLCD->width()) {
+           // clipping is not supported
+           return 0;
+        }
+        if (y == PNGDISPLAY_CENTER) {
+            y = (pLCD->height() - h)/2;
+            if (y < 0) y = 0;
+        } else if (y < 0 || y + h > pLCD->height()) {
+            return 0;
+        }
+        png_info = (uint32_t *)malloc((w * sizeof(uint16_t)) + 3 * sizeof(int)); // enough for pixels and 3 32-bit values
+        png_info[0] = (uint32_t)pLCD;
+        png_info[1] = (uint32_t)png;
+        png_info[2] = bgColor;
+        pLCD->setAddrWindow(x, y, w, h);
+        png->decode((void *)png_info, 0); // simple decode, no options
+        png->close();
+        free(png);
+        return 1;
+    }
+    free(png);
+    return 0;
+} /* loadPNG_LFS() */
 
 int PNGDisplay::getPNGInfo(int *width, int *height, int *bpp, const void *pData, int iDataSize)
 {
@@ -193,5 +249,30 @@ int PNGDisplay::getPNGInfo(int *width, int *height, int *bpp, const char *fname)
     free(png);
     return 0;
 } /* getPNGInfo() */
+
+int PNGDisplay::getPNGInfo_LFS(int *width, int *height, int *bpp, const char *fname)
+{
+    PNG *png;
+    int rc;
+    uint32_t *png_info;
+
+    if (!LittleFS.begin(false)) {
+        return 0;
+    }
+    if (!width || !height || !bpp || !fname) return 0;
+    png = (PNG *)malloc(sizeof(PNG));
+    if (!png) return 0;
+    rc = png->open(fname, pngOpenLFS, pngClose, pngRead, pngSeek, PNGDraw);
+    if (rc == PNG_SUCCESS) {
+        *width = png->getWidth();
+        *height = png->getHeight();
+        *bpp = png->getBpp();
+        png->close();
+        free(png);
+        return 1;
+    }
+    free(png);
+    return 0;
+} /* getPNGInfo_LFS() */
 
 #endif // __PNGDISPLAY__
