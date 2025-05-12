@@ -11,6 +11,7 @@
 // An optional background color can be specified for PNGs with an alpha channel
 //
 #include <PNGDisplay.h>
+#include <PNGDisplay.inl>
 #include <bb_spi_lcd.h>
 #include <SPI.h>
 #include <SD.h>
