@@ -147,7 +147,7 @@ typedef struct png_image_tag
     PNG_DRAW_CALLBACK *pfnDraw;
     PNG_CLOSE_CALLBACK *pfnClose;
     PNGFILE PNGFile;
-    uint8_t ucZLIB[32768 + sizeof(inflate_state)]; // put this here to avoid needing malloc/free
+    uint8_t ucZLIB[32768 + sizeof(struct inflate_state)]; // put this here to avoid needing malloc/free
     uint8_t ucPalette[1024];
     uint8_t ucPixels[PNG_MAX_BUFFERED_PIXELS * 2];
     uint8_t ucFileBuf[PNG_FILE_BUF_SIZE]; // holds temp file data
@@ -186,8 +186,8 @@ class PNG
 };
 #else
 #define PNG_STATIC
-int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize);
-int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename);
+int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw);
+int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK *pfnDraw);
 int PNG_getWidth(PNGIMAGE *pPNG);
 int PNG_getHeight(PNGIMAGE *pPNG);
 int PNG_decode(PNGIMAGE *pPNG, void *pUser, int iOptions);

@@ -60,21 +60,41 @@ static const uint16_t usGrayTo565[] = {0x0000,0x0000,0x0000,0x0000,0x0020,0x0020
 // C interface
 //
 #ifndef __cplusplus
+// Forward references
+PNG_STATIC int32_t readFLASH(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
+PNG_STATIC int32_t seekMem(PNGFILE *pFile, int32_t iPosition);
+PNG_STATIC int PNGInit(PNGIMAGE *pPNG);
+
 // C API
 int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
 {
     pPNG->iError = PNG_SUCCESS;
-    pPNG->pfnRead = readMem;
+    pPNG->pfnRead = readFLASH;
     pPNG->pfnSeek = seekMem;
     pPNG->pfnDraw = pfnDraw;
     pPNG->pfnOpen = NULL;
     pPNG->pfnClose = NULL;
     pPNG->PNGFile.iSize = iDataSize;
     pPNG->PNGFile.pData = pData;
+    pPNG->PNGFile.iPos = 0;
     return PNGInit(pPNG);
 } /* PNG_openRAM() */
 
 #ifdef __LINUX__
+int32_t readFile(PNGFILE *handle, uint8_t *buffer, int32_t length) {
+  if (!handle->fHandle) return 0;
+  return (int32_t)fread(buffer, 1, length, (FILE *)handle->fHandle);
+}
+int32_t seekFile(PNGFILE *handle, int32_t position) {
+  if (!handle->fHandle) return 0;
+  return fseek((FILE *)handle->fHandle, position, SEEK_SET);
+}
+void closeFile(void *handle) {
+    if (handle) {
+        FILE *f = (FILE *)handle;
+        fclose(f);
+    }
+}
 int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK *pfnDraw)
 {
     pPNG->iError = PNG_SUCCESS;
@@ -368,7 +388,6 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                 case 8: // 8-bit palette also supports palette alpha
                     if (pDraw->iHasAlpha) { // use the alpha to modify the palette
                         if (u32Bkgd != 0xffffffff) { // user wants to blend it with a background color
-                            uint32_t r, g, b, a;
                             uint32_t b_r, b_g, b_b;
                             b_r = u32Bkgd & 0xff; b_g = (u32Bkgd & 0xff00) >> 8;
                             b_b = (u32Bkgd >> 16) & 0xff;
@@ -588,7 +607,7 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
             pPage->iError = PNG_INVALID_FILE;
             return pPage->iError;
         }
-        int crc = crc32(0, &s[12], len+4);
+        int crc = (int)crc32(0, &s[12], len+4);
         int hdrcrc = MOTOLONG(&s[16+len]);
         if (len != 13 || crc != hdrcrc) {
             pPage->iError = PNG_INVALID_FILE;
@@ -773,7 +792,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     // Insert the memory pointer here to avoid having to use malloc() inside zlib
     state = (struct inflate_state FAR *)pPage->ucZLIB;
     d_stream.state = (struct internal_state FAR *)state;
-    state->window = &pPage->ucZLIB[sizeof(inflate_state)]; // point to 32k dictionary buffer
+    state->window = &pPage->ucZLIB[sizeof(struct inflate_state)]; // point to 32k dictionary buffer
     err = inflateInit(&d_stream);
 #ifdef FUTURE
 //    if (inpage->cCompression == PIL_COMP_IPHONE_FLATE)

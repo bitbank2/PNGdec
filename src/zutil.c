@@ -24,12 +24,12 @@ z_const char * const z_errmsg[10] = {
 };
 
 
-const char * ZEXPORT zlibVersion()
+const char * ZEXPORT zlibVersion(void)
 {
     return ZLIB_VERSION;
 }
 
-uLong ZEXPORT zlibCompileFlags()
+uLong ZEXPORT zlibCompileFlags(void)
 {
     uLong flags;
 
