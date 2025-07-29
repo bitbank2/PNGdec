@@ -931,7 +931,10 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                                 pngd.iHasAlpha = pPage->iHasAlpha;
                                 pngd.iBpp = pPage->ucBpp;
                                 pngd.y = y;
-                                (*pPage->pfnDraw)(&pngd);
+                                if (!(*pPage->pfnDraw)(&pngd)) { // user code returned 0 from PNGDraw
+                                    pPage->iError = PNG_QUIT_EARLY;
+                                    return pPage->iError;
+                                }
                             } else {
                                 // copy to destination bitmap
                                 memcpy(&pPage->pImage[y * pPage->iPitch], &pCurr[1], pPage->iPitch);

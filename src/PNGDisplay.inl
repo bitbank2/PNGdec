@@ -20,7 +20,7 @@
 #define __PNGDISPLAY_IMPL__
 #include "PNGDisplay.h"
 
-static void PNGDraw(PNGDRAW *pDraw)
+static int PNGDraw(PNGDRAW *pDraw)
 {
 int *pInfo = (int *)pDraw->pUser;
 uint16_t *p16;
@@ -32,6 +32,7 @@ PNG *pPNG;
     p16 = (uint16_t *)&pInfo[3]; // start of temporary pixel space
     pPNG->getLineAsRGB565(pDraw, p16, PNG_RGB565_BIG_ENDIAN, (uint32_t)pInfo[2]);
     pLCD->pushPixels(p16, pDraw->iWidth);
+    return 1;
 } /* PNGDraw() */
 
 // Functions to access a file on the SD card

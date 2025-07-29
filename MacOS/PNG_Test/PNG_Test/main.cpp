@@ -59,15 +59,17 @@ typedef struct my_private_struct
   int xoff, yoff; // corner offset
 } PRIVATE;
 // Second draw callback for testing conversion to RGB565
-void PNGDraw2(PNGDRAW *pDraw)
+int PNGDraw2(PNGDRAW *pDraw)
 {
 uint16_t usPixels[320];
     png.getLineAsRGB565(pDraw, usPixels, ucPixelType, u32BG);
     if (pDraw->y == 0) { // get first pixel of first line for testing
         u16Out = usPixels[0];
     }
+    return 1;
 } /* PNGDraw2() */
-void PNGDraw(PNGDRAW *pDraw)
+
+int PNGDraw(PNGDRAW *pDraw)
 {
 PRIVATE *pPriv = (PRIVATE *)pDraw->pUser;
     
@@ -83,8 +85,13 @@ PRIVATE *pPriv = (PRIVATE *)pDraw->pUser;
     iBpp = pDraw->iBpp;
     iWidth = pDraw->iWidth;
     iLines++;
+    return 1;
 } /* PNGDraw() */
 
+int PNGDraw3(PNGDRAW *pDraw)
+{
+    return 0; // abort the decode immediately
+}
 //
 // Simple logging print
 //
@@ -290,6 +297,23 @@ int main(int argc, const char * argv[]) {
     png.decode(NULL, 0);
     png.close();
     if (u16Out == 0x1f00) { // check transparnet pixel (0,0) to see if it matches the 32-bit BG color we asked for
+        iTotalPass++;
+        PNGLOG(__LINE__, szTestName, " - PASSED");
+    } else {
+        iTotalFail++;
+        PNGLOG(__LINE__, szTestName, " - FAILED");
+    }
+    // Test 10 - check the decoding can be aborted when the PNGDraw callback returns 0
+    ucPixelType = PNG_RGB565_BIG_ENDIAN;
+    szTestName = (char *)"PNG decode aborted early";
+    iTotal++;
+    PNGLOG(__LINE__, szTestName, szStart);
+    u16Out = 0xffff;
+    png.openFLASH((uint8_t *)octocat_8bpp, sizeof(octocat_8bpp), PNGDraw3);
+    png.setBuffer(NULL);
+    rc = png.decode(NULL, 0);
+    png.close();
+    if (rc == PNG_QUIT_EARLY) { // check transparnet pixel (0,0) to see if it matches the 32-bit BG color we asked for
         iTotalPass++;
         PNGLOG(__LINE__, szTestName, " - PASSED");
     } else {

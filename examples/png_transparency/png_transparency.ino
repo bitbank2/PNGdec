@@ -30,7 +30,7 @@ typedef struct my_private_struct
   int xoff, yoff; // corner offset
 } PRIVATE;
 
-void PNGDraw(PNGDRAW *pDraw)
+int PNGDraw(PNGDRAW *pDraw)
 {
 uint16_t usPixels[320];
 uint8_t ucMask[40];
@@ -40,6 +40,7 @@ PRIVATE *pPriv = (PRIVATE *)pDraw->pUser;
   if (png.getAlphaMask(pDraw, ucMask, 255)) { // if any pixels are opaque, draw them
     spilcdWritePixelsMasked(&lcd, pPriv->xoff, pPriv->yoff + pDraw->y, (uint8_t *)usPixels, ucMask, pDraw->iWidth, DRAW_TO_LCD);
   }
+  return 1;
 } /* PNGDraw() */
 
 void setup() {

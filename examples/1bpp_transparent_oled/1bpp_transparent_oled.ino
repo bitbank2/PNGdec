@@ -47,13 +47,14 @@ uint8_t *d, ucPix, ucAlpha, ucMask;
   } // for each group of 8 pixels
 } /* DrawPixelsMasked() */
 
-void PNGDraw(PNGDRAW *pDraw)
+int PNGDraw(PNGDRAW *pDraw)
 {
 uint8_t ucMask[32];
 
   if (png.getAlphaMask(pDraw, ucMask, 255)) { // if any pixels are opaque, draw them
     DrawPixelsMasked(pDraw->y, pDraw->pPixels, ucMask, pDraw->iWidth);
   }
+  return 1;
 } /* PNGDraw() */
 
 void setup() {

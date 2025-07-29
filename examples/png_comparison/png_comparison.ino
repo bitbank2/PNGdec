@@ -75,7 +75,7 @@ void DecodeTest(int bLode, const uint8_t *pData, size_t data_size, const char *s
     }
 } /* DecodeTest() */
 
-void PNGDraw(PNGDRAW *pDraw)
+int PNGDraw(PNGDRAW *pDraw)
 {
   if (bDisplay) {
     if (pDraw->y == 0) {
@@ -84,6 +84,7 @@ void PNGDraw(PNGDRAW *pDraw)
     png->getLineAsRGB565(pDraw, usPixels, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
     lcd.pushPixels(usPixels, pDraw->iWidth, DRAW_TO_LCD | DRAW_WITH_DMA);
   }
+  return 1;
 } /* PNGDraw() */
 
 void setup() {

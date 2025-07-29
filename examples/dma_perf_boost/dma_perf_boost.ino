@@ -19,7 +19,7 @@ static uint16_t usPixels[320]; // make sure there is enough room for the full im
 // Called with a full row of pixels
 // for every row in the image
 //
-void PNGDraw(PNGDRAW *pDraw)
+int PNGDraw(PNGDRAW *pDraw)
 {
     if (pDraw->y == 0) {
       // set the address window when we get the first line
@@ -35,6 +35,7 @@ void PNGDraw(PNGDRAW *pDraw)
     } else {
       lcd.pushPixels(usPixels, pDraw->iWidth);
     }
+    return 1;
 } /* PNGDraw() */
 
 void setup()

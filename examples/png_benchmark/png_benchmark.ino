@@ -17,13 +17,14 @@ typedef struct myprivate
   bool bConvert;
 } PRIVATE;
 
-void PNGDraw(PNGDRAW *pDraw)
+int PNGDraw(PNGDRAW *pDraw)
 {
 PRIVATE *pPriv = (PRIVATE *)pDraw->pUser;
 uint16_t usPixels[320];
 
   if (pPriv->bConvert)
      png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_LITTLE_ENDIAN, 0xffffffff); // don't do alpha color blending
+  return 1;
 } /* PNGDraw() */
 
 void setup() {

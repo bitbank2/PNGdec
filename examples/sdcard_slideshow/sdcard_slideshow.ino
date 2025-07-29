@@ -59,11 +59,12 @@ int32_t mySeek(PNGFILE *handle, int32_t position) {
 }
 
 // Function to draw pixels to the display
-void PNGDraw(PNGDRAW *pDraw) {
+int PNGDraw(PNGDRAW *pDraw) {
 uint16_t usPixels[320];
 
   png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_LITTLE_ENDIAN, 0xffffffff);
   tft.writeRect(0, pDraw->y + 24, pDraw->iWidth, 1, usPixels);
+  return 1;
 }
 
 // Main loop, scan for all .PNG files on the card and display them

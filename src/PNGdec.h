@@ -95,7 +95,8 @@ enum {
     PNG_NO_BUFFER,
     PNG_UNSUPPORTED_FEATURE,
     PNG_INVALID_FILE,
-    PNG_TOO_BIG
+    PNG_TOO_BIG,
+    PNG_QUIT_EARLY
 };
 
 typedef struct png_draw_tag
@@ -124,7 +125,7 @@ typedef struct png_file_tag
 typedef int32_t (PNG_READ_CALLBACK)(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
 typedef int32_t (PNG_SEEK_CALLBACK)(PNGFILE *pFile, int32_t iPosition);
 typedef void * (PNG_OPEN_CALLBACK)(const char *szFilename, int32_t *pFileSize);
-typedef void (PNG_DRAW_CALLBACK)(PNGDRAW *);
+typedef int (PNG_DRAW_CALLBACK)(PNGDRAW *);
 typedef void (PNG_CLOSE_CALLBACK)(void *pHandle);
 
 //
