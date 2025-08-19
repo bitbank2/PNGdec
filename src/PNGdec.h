@@ -49,8 +49,11 @@
 /* Defines and variables */
 #define PNG_FILE_BUF_SIZE 2048
 // Number of bytes to reserve for current and previous lines
-// Defaults to 480 32-bit pixels max width
-#define PNG_MAX_BUFFERED_PIXELS ((480*4 + 1)*2)
+// Defaults to 320 32-bit pixels max width
+// but can be overidden with a macro defined at compile time
+#ifndef PNG_MAX_BUFFERED_PIXELS
+#define PNG_MAX_BUFFERED_PIXELS ((320*4 + 1)*2)
+#endif
 // PNG filter type
 enum {
     PNG_FILTER_NONE=0,
