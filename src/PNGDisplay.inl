@@ -58,7 +58,7 @@ int32_t iWidth, i, x, y;
     s = pDraw->pPixels;
     i = 0;
     if ((x & 7) == 0) { // take advantage of src/dest bit alignment
-        while (i <= w-7) {
+        while (i < w-7) {
             *d++ = *s++;
             i += 8;
         }
@@ -83,7 +83,7 @@ int32_t iWidth, i, x, y;
             uc_d = d[0];
         }
     } // for i
-    if (destMask != 0) { // store the last partial byte
+    if (destMask != 0x80) { // store the last partial byte
         d[0] = uc_d;
     }
 #endif // __BB_EPAPER__
