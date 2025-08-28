@@ -20,8 +20,10 @@
 #define __PNGDISPLAY__
 #include <PNGdec.h>
 #include <SD.h>
+#ifndef ARDUINO_ARCH_NRF52
 #include "FS.h"
 #include <LittleFS.h>
+#endif
 
 #if !defined(__BB_EPAPER__) && !defined(SPI_LCD_H) && !defined(__FASTEPD_H__)
 #error "One of the following display libraries must be included BEFORE PNGDisplay: bb_spi_lcd, bb_epaper, FastEPD"

@@ -154,6 +154,7 @@ static void * pngOpen(const char *filename, int32_t *size) {
   *size = myfile.size();
   return &myfile;
 }
+#ifndef ARDUINO_ARCH_NRF52
 static void * pngOpenLFS(const char *filename, int32_t *size) {
   static File myfile;
   myfile = LittleFS.open(filename, FILE_READ);
@@ -164,6 +165,8 @@ static void * pngOpenLFS(const char *filename, int32_t *size) {
       return NULL;
   }
 }
+#endif // !nRF52
+
 static void pngClose(void *handle) {
   File *pFile = (File *)handle;
   if (pFile) pFile->close();
@@ -306,6 +309,7 @@ int PNGDisplay::loadPNG(BBEPAPER *pDisplay, int x, int y, const char *fname, uin
     return 0;
 } /* loadPNG() */
 
+#ifndef ARDUINO_ARCH_NRF52
 #ifdef SPI_LCD_H
 int PNGDisplay::loadPNG_LFS(BB_SPI_LCD *pDisplay, int x, int y, const char *fname, uint32_t bgColor)
 #endif
@@ -371,6 +375,7 @@ int PNGDisplay::loadPNG_LFS(BBEPAPER *pDisplay, int x, int y, const char *fname,
     free(png);
     return 0;
 } /* loadPNG_LFS() */
+#endif // !nRF52
 
 int PNGDisplay::getPNGInfo(int *width, int *height, int *bpp, const void *pData, int iDataSize)
 {
@@ -426,6 +431,7 @@ int PNGDisplay::getPNGInfo(int *width, int *height, int *bpp, const char *fname)
     return 0;
 } /* getPNGInfo() */
 
+#ifndef ARDUINO_ARCH_NRF52
 int PNGDisplay::getPNGInfo_LFS(int *width, int *height, int *bpp, const char *fname)
 {
     PNG *png;
@@ -455,5 +461,5 @@ int PNGDisplay::getPNGInfo_LFS(int *width, int *height, int *bpp, const char *fn
     free(png);
     return 0;
 } /* getPNGInfo_LFS() */
-
+#endif // !nRF52
 #endif // __PNGDISPLAY_IMPL__
