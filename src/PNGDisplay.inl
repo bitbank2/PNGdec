@@ -363,7 +363,7 @@ int PNGDisplay::loadPNG_LFS(BBEPAPER *pDisplay, int x, int y, const char *fname,
         png_info[3] = x;
         png_info[4] = y;
 #ifdef SPI_LCD_H
-        pLCD->setAddrWindow(x, y, w, h);
+        pDisplay->setAddrWindow(x, y, w, h);
 #endif
         png->decode((void *)png_info, 0); // simple decode, no options
         png->close();

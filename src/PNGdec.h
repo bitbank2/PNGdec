@@ -153,7 +153,7 @@ typedef struct png_image_tag
     PNGFILE PNGFile;
     uint8_t ucZLIB[32768 + sizeof(struct inflate_state)]; // put this here to avoid needing malloc/free
     uint8_t ucPalette[1024];
-    uint8_t ucPixels[PNG_MAX_BUFFERED_PIXELS * 2];
+    uint8_t ucPixels[PNG_MAX_BUFFERED_PIXELS];
     uint8_t ucFileBuf[PNG_FILE_BUF_SIZE]; // holds temp file data
 } PNGIMAGE;
 
