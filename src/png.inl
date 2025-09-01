@@ -622,6 +622,14 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
             pPage->iError = PNG_UNSUPPORTED_FEATURE;
             return pPage->iError;
         }
+        if (pPage->ucPixelType != PNG_PIXEL_GRAYSCALE && pPage->ucPixelType != PNG_PIXEL_TRUECOLOR && pPage->ucPixelType != PNG_PIXEL_INDEXED && pPage->ucPixelType != PNG_PIXEL_GRAY_ALPHA && pPage->ucPixelType != PNG_PIXEL_TRUECOLOR_ALPHA) {
+            pPage->iError = PNG_INVALID_FILE;
+            return pPage->iError;
+        }
+        if (pPage->ucBpp == 0 || pPage->ucBpp == 3 || pPage->ucBpp == 5 || pPage->ucBpp == 6) {
+            pPage->iError = PNG_INVALID_FILE;
+            return pPage->iError;
+        }
         // calculate the number of bytes per line of pixels
         switch (pPage->ucPixelType) {
             case PNG_PIXEL_GRAYSCALE: // grayscale
@@ -931,10 +939,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                                 pngd.iHasAlpha = pPage->iHasAlpha;
                                 pngd.iBpp = pPage->ucBpp;
                                 pngd.y = y;
-                                if (!(*pPage->pfnDraw)(&pngd)) { // user code returned 0 from PNGDraw
-                                    pPage->iError = PNG_QUIT_EARLY;
-                                    return pPage->iError;
-                                }
+                                (*pPage->pfnDraw)(&pngd);
                             } else {
                                 // copy to destination bitmap
                                 memcpy(&pPage->pImage[y * pPage->iPitch], &pCurr[1], pPage->iPitch);
