@@ -54,6 +54,8 @@
 #ifndef PNG_MAX_BUFFERED_PIXELS
 #define PNG_MAX_BUFFERED_PIXELS ((320*4 + 1)*2)
 #endif
+
+#ifndef __PNGENC__
 // PNG filter type
 enum {
     PNG_FILTER_NONE=0,
@@ -78,16 +80,6 @@ enum {
     PNG_PIXEL_GRAY_ALPHA=4,
     PNG_PIXEL_TRUECOLOR_ALPHA=6
 };
-// RGB565 endianness
-enum {
-    PNG_RGB565_LITTLE_ENDIAN = 0,
-    PNG_RGB565_BIG_ENDIAN
-};
-
-enum {
-    PNG_MEM_RAM=0,
-    PNG_MEM_FLASH
-};
 
 // Error codes returned by getLastError()
 enum {
@@ -100,6 +92,27 @@ enum {
     PNG_INVALID_FILE,
     PNG_TOO_BIG,
     PNG_QUIT_EARLY
+};
+
+typedef struct png_file_tag
+{
+  int32_t iPos; // current file position
+  int32_t iSize; // file size
+  uint8_t *pData; // memory file pointer
+  void * fHandle; // class pointer to File/SdFat or whatever you want
+} PNGFILE;
+
+#endif // !__PNGENC__
+
+// RGB565 endianness
+enum {
+    PNG_RGB565_LITTLE_ENDIAN = 0,
+    PNG_RGB565_BIG_ENDIAN
+};
+
+enum {
+    PNG_MEM_RAM=0,
+    PNG_MEM_FLASH
 };
 
 typedef struct png_draw_tag
@@ -115,14 +128,6 @@ typedef struct png_draw_tag
     uint16_t *pFastPalette;
     uint8_t *pPixels;
 } PNGDRAW;
-
-typedef struct png_file_tag
-{
-  int32_t iPos; // current file position
-  int32_t iSize; // file size
-  uint8_t *pData; // memory file pointer
-  void * fHandle; // class pointer to File/SdFat or whatever you want
-} PNGFILE;
 
 // Callback function prototypes
 typedef int32_t (PNG_READ_CALLBACK)(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
