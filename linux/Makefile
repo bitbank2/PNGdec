@@ -1,13 +1,12 @@
 CFLAGS=-D__LINUX__ -Wall -O2 
 LIBS = 
 
-all: png_demo
+all: libpngdec.a
 
-png_demo: main.o PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o inftrees.o zutil.o
-	$(CC) main.o PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o inftrees.o zutil.o $(LIBS) -o png_demo 
-
-main.o: main.cpp
-	$(CXX) $(CFLAGS) -c main.cpp
+libpngdec.a: PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o inftrees.o zutil.o
+	ar -rc libpngdec.a PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o intrees.o zutil.o ;\
+	sudo cp libpngdec.a /usr/local/lib ;\
+	sudo cp ../src/PNGdec.h /usr/local/include
 
 PNGdec.o: ../src/PNGdec.cpp ../src/png.inl ../src/PNGdec.h
 	$(CXX) $(CFLAGS) -c ../src/PNGdec.cpp
@@ -34,4 +33,4 @@ zutil.o: ../src/zutil.c
 	$(CC) $(CFLAGS) -c ../src/zutil.c
 
 clean:
-	rm -rf *.o png_demo
+	rm -rf *.o libpngdec.a
