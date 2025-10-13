@@ -4,7 +4,7 @@ LIBS =
 all: libpngdec.a
 
 libpngdec.a: PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o inftrees.o zutil.o
-	ar -rc libpngdec.a PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o intrees.o zutil.o ;\
+	ar -rc libpngdec.a PNGdec.o adler32.o crc32.o infback.o inffast.o inflate.o inftrees.o zutil.o ;\
 	sudo cp libpngdec.a /usr/local/lib ;\
 	sudo cp ../src/PNGdec.h /usr/local/include
 
