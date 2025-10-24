@@ -632,23 +632,26 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
         }
         // calculate the number of bytes per line of pixels
         switch (pPage->ucPixelType) {
+            default:
+                pPage->iPitch = pPage->iWidth;
+                break;
             case PNG_PIXEL_GRAYSCALE: // grayscale
             case PNG_PIXEL_INDEXED: // indexed
                 pPage->iPitch = (pPage->iWidth * pPage->ucBpp + 7)/8; // bytes per pixel
                 break;
             case PNG_PIXEL_TRUECOLOR: // truecolor
-                pPage->iPitch = ((3 * pPage->ucBpp) * pPage->iWidth + 7)/8;
+                pPage->iPitch = 3 * pPage->iWidth;
                 break;
             case PNG_PIXEL_GRAY_ALPHA: // grayscale + alpha
                 pPage->iPitch = ((2 * pPage->ucBpp) * pPage->iWidth + 7)/8;
                 pPage->iHasAlpha = 1;
                 break;
             case PNG_PIXEL_TRUECOLOR_ALPHA: // truecolor + alpha
-                pPage->iPitch = ((4 * pPage->ucBpp) * pPage->iWidth + 7)/8;
+                pPage->iPitch = 4 * pPage->iWidth;
                 pPage->iHasAlpha = 1;
         } // switch
     }
-    if (pPage->iPitch >= PNG_MAX_BUFFERED_PIXELS)
+    if (pPage->iPitch >= PNG_MAX_BUFFERED_PIXELS/2)
        return PNG_TOO_BIG;
 
     return PNG_SUCCESS;
@@ -778,8 +781,13 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
     // Either the image buffer must be allocated or a draw callback must be set before entering
     if (pPage->pImage == NULL && pPage->pfnDraw == NULL) {
         pPage->iError = PNG_NO_BUFFER;
-        return 0;
+        return pPage->iError;
     }
+    if (pPage->iPitch >= PNG_MAX_BUFFERED_PIXELS/2) {
+        pPage->iError = PNG_TOO_BIG;
+        return pPage->iError;
+    }
+
     // Use internal buffer to maintain the current and previous lines
     y = (int)(intptr_t)&pPage->ucPixels[0];
     y &= 15; // make sure we're 16-byte aligned, -1 for filter byte
