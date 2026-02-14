@@ -53,9 +53,9 @@
 // but can be overidden with a macro defined at compile time
 #ifndef PNG_MAX_BUFFERED_PIXELS
 #if defined( __LINUX__ ) || defined ( __MACH__ )
-#define PNG_MAX_BUFFERED_PIXELS ((2048*4 + 1)*2)
+#define PNG_MAX_BUFFERED_PIXELS ((2048*4 + 1 + 16)*2)
 #else // Arduino?
-#define PNG_MAX_BUFFERED_PIXELS ((320*4 + 1)*2)
+#define PNG_MAX_BUFFERED_PIXELS ((320*4 + 1 + 16)*2)
 #endif // __LINUX__
 #endif
 
