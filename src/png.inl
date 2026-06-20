@@ -64,6 +64,7 @@ static const uint16_t usGrayTo565[] = {0x0000,0x0000,0x0000,0x0000,0x0020,0x0020
 PNG_STATIC int32_t readFLASH(PNGFILE *pFile, uint8_t *pBuf, int32_t iLen);
 PNG_STATIC int32_t seekMem(PNGFILE *pFile, int32_t iPosition);
 PNG_STATIC int PNGInit(PNGIMAGE *pPNG);
+PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions);
 
 // C API
 int PNG_openRAM(PNGIMAGE *pPNG, uint8_t *pData, int iDataSize, PNG_DRAW_CALLBACK *pfnDraw)
@@ -112,6 +113,12 @@ int PNG_openFile(PNGIMAGE *pPNG, const char *szFilename, PNG_DRAW_CALLBACK *pfnD
     return PNGInit(pPNG);
 } /* PNG_openFile() */
 #endif // __LINUX__
+
+int PNG_decode(PNGIMAGE *pPNG, void *pUser, int iOptions)
+{
+    return DecodePNG(pPNG, pUser, iOptions);
+} /* PNG_decode() */
+
 void PNG_close(PNGIMAGE *pPNG)
 {
     if (pPNG->pfnClose)
@@ -133,10 +140,30 @@ int PNG_getLastError(PNGIMAGE *pPNG)
     return pPNG->iError;
 } /* PNG_getLastError() */
 
+int PNG_getBpp(PNGIMAGE *pPNG)
+{
+    return pPNG->ucBpp;
+} /* PNG_getBpp() */
+
+int PNG_hasAlpha(PNGIMAGE *pPNG)
+{
+    return pPNG->iHasAlpha;
+} /* PNG_hasAlpha() */
+
+int PNG_isInterlaced(PNGIMAGE *pPNG)
+{
+    return pPNG->iInterlaced;
+} /* PNG_isInterlaced() */
+
 uint8_t *PNG_getPalette(PNGIMAGE *pPNG)
 {
     return pPNG->ucPalette;
 } /* PNG_getPalette() */
+
+int PNG_getPixelType(PNGIMAGE *pPNG)
+{
+    return pPNG->ucPixelType;
+} /* PNG_getPixelType() */
 
 int PNG_getBufferSize(PNGIMAGE *pPNG)
 {
@@ -147,6 +174,11 @@ uint8_t * PNG_getBuffer(PNGIMAGE *pPNG)
 {
     return pPNG->pImage;
 } /* PNG_getBuffer() */
+
+void PNG_setBuffer(PNGIMAGE *pPNG, uint8_t *pBuffer)
+{
+    pPNG->pImage = pBuffer;
+} /* PNG_setBuffer() */
 
 #endif // !__cplusplus
 PNG_STATIC uint8_t PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold)
