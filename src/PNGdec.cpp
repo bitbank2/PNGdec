@@ -79,6 +79,15 @@ int PNG::open(const char *szFilename, PNG_OPEN_CALLBACK *pfnOpen, PNG_CLOSE_CALL
 
 } /* open() */
 //
+// Return a pointer to the comment string or NULL if not present
+//
+char * PNG::getComment(void)
+{
+    if (_png.szComment[0]) return &_png.szComment[0];
+    return NULL;
+} /* getComment() */
+
+//
 // return the last error (if any)
 //
 int PNG::getLastError()

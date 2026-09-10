@@ -25,6 +25,7 @@
 #include "../../../src/PNGdec.cpp"
 
 #include "../../../test_images/octocat_8bpp.h"
+#include "../../../test_images/st7735_comment.h"
 #include "../../../test_images/octocat.h"
 #include "../../../test_images/bugpng.h"
 PNG png;
@@ -314,6 +315,37 @@ int main(int argc, const char * argv[]) {
     rc = png.decode(NULL, 0);
     png.close();
     if (rc == PNG_QUIT_EARLY) {
+        iTotalPass++;
+        PNGLOG(__LINE__, szTestName, " - PASSED");
+    } else {
+        iTotalFail++;
+        PNGLOG(__LINE__, szTestName, " - FAILED");
+    }
+    // Test 11 - check that a file does not contain a comment chunk
+    ucPixelType = PNG_RGB565_BIG_ENDIAN;
+    szTestName = (char *)"PNG does not contain a comment chunk";
+    iTotal++;
+    PNGLOG(__LINE__, szTestName, szStart);
+    u16Out = 0xffff;
+    png.openFLASH((uint8_t *)octocat_8bpp, sizeof(octocat_8bpp), PNGDraw);
+    iWidth = iLines = 0;
+    png.decode(NULL, 0);
+    if (png.getComment() == NULL) { // should not have a comment
+        iTotalPass++;
+        PNGLOG(__LINE__, szTestName, " - PASSED");
+    } else {
+        iTotalFail++;
+        PNGLOG(__LINE__, szTestName, " - FAILED");
+    }
+    // Test 12 - check that a file contains a comment chunk
+    szTestName = (char *)"PNG contains a comment chunk";
+    iTotal++;
+    PNGLOG(__LINE__, szTestName, szStart);
+    u16Out = 0xffff;
+    png.openFLASH((uint8_t *)st7735_comment, sizeof(st7735_comment), PNGDraw);
+    iWidth = iLines = 0;
+    png.decode(NULL, 0);
+    if (png.getComment() != NULL && strcmp(png.getComment(), "PNGdec test") == 0) { // should have this comment
         iTotalPass++;
         PNGLOG(__LINE__, szTestName, " - PASSED");
     } else {

@@ -625,6 +625,7 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
     int iBytesRead;
     
     pPage->iHasAlpha = pPage->iInterlaced = 0;
+    pPage->szComment[0] = 0;
     // Read a few bytes to just parse the size/pixel info
     iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, s, 33);
     if (iBytesRead < 33) { // a PNG file this tiny? probably bad
@@ -1016,32 +1017,31 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 break;
                 //               case 0x69545874: //'iTXt'
                 //               case 0x7a545874: //'zTXt'
-#ifdef FUTURE
             case 0x74455874: //'tEXt'
             {
-                char szTemp[256];
+                int i;
+                char szTemp[64];
                 char *pDest = NULL;
-                memcpy(szTemp, &s[iOffset], 80); // get the label length (Title, Author, Description, Copyright, Creation Time, Software, Disclaimer, Warning, Source, Comment)
+                memcpy(szTemp, &s[iOffset], 64); // get the label length (Title, Author, Description, Copyright, Creation Time, Software, Disclaimer, Warning, Source, Comment)
                 i = (int)strlen(szTemp) + 1; // start of actual text
                 if (strcmp(szTemp, "Comment") == 0 || strcmp(szTemp, "Description") == 0) pDest = &pPage->szComment[0];
-                else if (strcmp(szTemp, "Software") == 0) pDest = &pPage->szSoftware[0];
-                else if (strcmp(szTemp, "Author") == 0) pDest = &pPage->szArtist[0];
+                //else if (strcmp(szTemp, "Software") == 0) pDest = &pPage->szSoftware[0];
+                //else if (strcmp(szTemp, "Author") == 0) pDest = &pPage->szArtist[0];
                 if (pDest != NULL)
                 {
-                    if ((iLen - i) < 128)
+                    if ((iLen - i) < PNG_COMMENT_SIZE)
                     {
-                        memcpy(pPage->szComment, &pPage->pData[iOffset + i], iLen - i);
+                        memcpy(pPage->szComment, &s[iOffset + i], iLen - i);
                         pPage->szComment[iLen - i + 1] = 0;
                     }
                     else
                     {
-                        memcpy(pPage->szComment, &pPage->pData[iOffset + i], 127);
-                        pPage->szComment[127] = '\0';
+                        memcpy(pPage->szComment, &s[iOffset + i], PNG_COMMENT_SIZE-1);
+                        pPage->szComment[PNG_COMMENT_SIZE-1] = '\0';
                     }
                 }
             }
-                break;
-#endif
+            break;
         } // switch
         iOffset += (iLen + 4); // skip data + CRC
     } // while y < height

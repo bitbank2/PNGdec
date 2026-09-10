@@ -58,6 +58,9 @@
 #define PNG_MAX_BUFFERED_PIXELS ((320*4 + 1)*2)
 #endif
 #endif
+#ifndef PNG_COMMENT_SIZE
+#define PNG_COMMENT_SIZE 128
+#endif // PNG_COMMENT_SIZE
 
 #ifndef __PNGENC__
 // PNG filter type
@@ -164,6 +167,7 @@ typedef struct png_image_tag
     uint8_t ucPalette[1024];
     uint8_t ucPixels[PNG_MAX_BUFFERED_PIXELS];
     uint8_t ucFileBuf[PNG_FILE_BUF_SIZE]; // holds temp file data
+    char szComment[PNG_COMMENT_SIZE];
 } PNGIMAGE;
 
 #ifdef __cplusplus
@@ -189,6 +193,7 @@ class PNG
     int getPixelType();
     int getLastError();
     int getBufferSize();
+    char *getComment();
     uint8_t *getBuffer();
     void setBuffer(uint8_t *pBuffer);
     uint8_t getAlphaMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThreshold);
