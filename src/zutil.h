@@ -34,8 +34,8 @@
    typedef long ptrdiff_t;  /* guess -- will be caught if guess is wrong */
 #endif
 
-#ifndef local
-#  define local static
+#ifndef PNG_STATIC
+#  define PNG_STATIC static
 #endif
 /* since "static" is used to mean two completely different things in C, we
    define "local" for the non-static meaning of "static", for readability

@@ -96,17 +96,17 @@
 #endif
 
 /* function prototypes */
-local int inflateStateCheck OF((z_streamp strm));
-local void fixedtables(struct inflate_state FAR *state);
-local int updatewindow OF((z_streamp strm, const unsigned char FAR *end,
+PNG_STATIC int inflateStateCheck OF((z_streamp strm));
+PNG_STATIC void fixedtables(struct inflate_state FAR *state);
+PNG_STATIC int updatewindow OF((z_streamp strm, const unsigned char FAR *end,
                            unsigned copy));
 #ifdef BUILDFIXED
 void makefixed OF((void));
 #endif
-local unsigned syncsearch OF((unsigned FAR *have, const unsigned char FAR *buf,
+PNG_STATIC unsigned syncsearch OF((unsigned FAR *have, const unsigned char FAR *buf,
                               unsigned len));
 
-local int inflateStateCheck(z_streamp strm)
+PNG_STATIC int inflateStateCheck(z_streamp strm)
 {
     struct inflate_state FAR *state;
     if (strm == Z_NULL ||
@@ -278,7 +278,7 @@ int ZEXPORT inflatePrime(z_streamp strm, int bits, int value)
    used for threaded applications, since the rewriting of the tables and virgin
    may not be thread-safe.
  */
-local void fixedtables(struct inflate_state FAR *state)
+PNG_STATIC void fixedtables(struct inflate_state FAR *state)
 {
 #ifdef BUILDFIXED
     static int virgin = 1;
@@ -407,7 +407,7 @@ void makefixed()
    output will fall in the output data, making match copies simpler and faster.
    The advantage may be dependent on the size of the processor's data caches.
  */
-local int updatewindow(z_streamp strm, const Bytef *end, unsigned copy)
+PNG_STATIC int updatewindow(z_streamp strm, const Bytef *end, unsigned copy)
 {
     struct inflate_state FAR *state;
     unsigned dist;
@@ -1543,7 +1543,7 @@ int ZEXPORT inflateGetHeader(z_streamp strm, gz_headerp head)
    called again with more data and the *have state.  *have is initialized to
    zero for the first call.
  */
-local unsigned syncsearch(unsigned FAR *have, const unsigned char FAR *buf, unsigned len)
+PNG_STATIC unsigned syncsearch(unsigned FAR *have, const unsigned char FAR *buf, unsigned len)
 {
     unsigned got;
     unsigned next;

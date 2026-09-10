@@ -16,7 +16,7 @@
 #include "inffast.h"
 
 /* function prototypes */
-local void fixedtables (struct inflate_state FAR *state);
+PNG_STATIC void fixedtables (struct inflate_state FAR *state);
 
 /*
    strm provides memory allocation functions in zalloc and zfree, or
@@ -74,7 +74,7 @@ int ZEXPORT inflateBackInit_(z_streamp strm, int windowBits, unsigned char FAR *
    used for threaded applications, since the rewriting of the tables and virgin
    may not be thread-safe.
  */
-local void fixedtables(struct inflate_state FAR *state)
+PNG_STATIC void fixedtables(struct inflate_state FAR *state)
 {
 #ifdef BUILDFIXED
     static int virgin = 1;

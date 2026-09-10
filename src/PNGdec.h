@@ -52,11 +52,7 @@
 // Defaults to 320 32-bit pixels max width
 // but can be overidden with a macro defined at compile time
 #ifndef PNG_MAX_BUFFERED_PIXELS
-#if defined( __LINUX__ ) || defined( __MACH__ )
-#define PNG_MAX_BUFFERED_PIXELS 16386
-#else
 #define PNG_MAX_BUFFERED_PIXELS ((320*4 + 1)*2)
-#endif
 #endif
 
 #ifndef __PNGENC__
@@ -218,12 +214,10 @@ void PNG_setBuffer(PNGIMAGE *pPNG, uint8_t *pBuffer);
 #endif // __cplusplus
 
 // Due to unaligned memory causing an exception, we have to do these macros the slow way
-#ifndef MOTOLONG
 #define INTELSHORT(p) ((*p) + (*(p+1)<<8))
 #define INTELLONG(p) ((*p) + (*(p+1)<<8) + (*(p+2)<<16) + (*(p+3)<<24))
 #define MOTOSHORT(p) (((*(p))<<8) + (*(p+1)))
 #define MOTOLONG(p) (((*p)<<24) + ((*(p+1))<<16) + ((*(p+2))<<8) + (*(p+3)))
-#endif
 
 // Must be a 32-bit target processor
 #define REGISTER_WIDTH 32
