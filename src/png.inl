@@ -684,7 +684,7 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
                 pPage->iHasAlpha = 1;
         } // switch
     }
-    if ((pPage->iPitch+1)*2 > PNG_MAX_BUFFERED_PIXELS)
+    if ((pPage->iPitch+1)*2 + 32 > PNG_MAX_BUFFERED_PIXELS)
        return PNG_TOO_BIG;
 
     return PNG_SUCCESS;
@@ -804,7 +804,7 @@ PNG_STATIC int PNGInit(PNGIMAGE *pPNG)
 PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 {
     int err, y, iLen=0;
-    int bDone, iOffset, iFileOffset, iBytesRead;
+    int bDone, iOffset, iFileOffset, iBytesRead, iAvailable;
     int iMarker=0;
     uint8_t *tmp, *pCurr, *pPrev;
     z_stream d_stream; /* decompression stream */
@@ -876,6 +876,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
         }
         iMarker = MOTOLONG(&s[iOffset+4]);
         iOffset += 8; // point to the marker data
+        iAvailable = iBytesRead - iOffset;
         switch (iMarker)
         {
             case 0x44474b62: // 'bKGD' DEBUG
@@ -891,7 +892,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
 #endif
             case 0x504c5445: //'PLTE' palette colors
                 memset(&pPage->ucPalette[768], 0xff, 256); // assume all colors are opaque unless specified
-                if (iLen > 0 && iLen <= 768) {
+                if (iLen > 0 && iLen <= 768 && iLen <= iAvailable) {
                     memcpy(pPage->ucPalette, &s[iOffset], iLen);
                 }
                 if (iOptions & PNG_FAST_PALETTE) { // create a RGB565 palette
@@ -909,7 +910,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 }
                 break;
             case 0x74524e53: //'tRNS' transparency info
-                if (pPage->ucPixelType == PNG_PIXEL_INDEXED && iLen > 0 && iLen <= 256) // if palette exists
+                if (pPage->ucPixelType == PNG_PIXEL_INDEXED && iLen > 0 && iLen <= 256 && iLen <= iAvailable) // if palette exists
                 {
                     memcpy(&pPage->ucPalette[768], &s[iOffset], iLen);
                     pPage->iHasAlpha = 1;
