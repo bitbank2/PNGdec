@@ -651,6 +651,10 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
         }
         pPage->iWidth = MOTOLONG(&s[16]);
         pPage->iHeight = MOTOLONG(&s[20]);
+        if (pPage->iWidth <= 0 || pPage->iHeight <= 0 || pPage->iWidth > PNG_MAX_BUFFERED_PIXELS / 4) {  // Image size is outside of valid range
+            pPage->iError = PNG_TOO_BIG;
+            return pPage->iError;
+        }
         pPage->ucBpp = s[24]; // bits per pixel
         pPage->ucPixelType = s[25]; // pixel type
         pPage->iInterlaced = s[28];
@@ -1028,7 +1032,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 if (strcmp(szTemp, "Comment") == 0 || strcmp(szTemp, "Description") == 0) pDest = &pPage->szComment[0];
                 //else if (strcmp(szTemp, "Software") == 0) pDest = &pPage->szSoftware[0];
                 //else if (strcmp(szTemp, "Author") == 0) pDest = &pPage->szArtist[0];
-                if (pDest != NULL)
+                if (pDest != NULL && iLen > i)
                 {
                     if ((iLen - i) < PNG_COMMENT_SIZE)
                     {
