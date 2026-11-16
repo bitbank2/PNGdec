@@ -688,8 +688,10 @@ PNG_STATIC int PNGParseInfo(PNGIMAGE *pPage)
                 pPage->iHasAlpha = 1;
         } // switch
     }
-    if ((pPage->iPitch+1)*2 + 32 > PNG_MAX_BUFFERED_PIXELS)
-       return PNG_TOO_BIG;
+    if ((pPage->iPitch+1)*2 + 32 > PNG_MAX_BUFFERED_PIXELS) {
+       pPage->iError = PNG_TOO_BIG;
+       return pPage->iError;
+    }
 
     return PNG_SUCCESS;
 } /* PNGParseInfo() */
