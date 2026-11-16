@@ -1319,12 +1319,15 @@ int ZEXPORT inflate(z_streamp strm, int flush, int check_crc)
                     uint32_t pattern = *from;
                     pattern = pattern | (pattern << 8);
                     pattern = pattern | (pattern << 16);
-                    while (put < pEnd)
+                    while (put < pEnd - 3)
                     {
                         *(uint32_t *)put = pattern;
                         put += 4;
                     }
-                    put = pEnd; // correct possible overshoot
+                    while (put < pEnd) // handle remaining length that's not a multiple of 4
+                    {
+                        *put++ = (uint8_t)pattern;
+                    }
                 }
                 else
                 { // overlap of 2 or 3
