@@ -1,0 +1,24 @@
+{
+    "name": "PNGdec",
+    "version": "1.1.6",
+    "description": "Designed to provide a fully functional PNG decoder that can use minimal memory by decoding a line at a time with an optional callback function. Supports all pixel formats.",
+    "keywords": "image, png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bitbank2/PNGdec"
+    },
+    "frameworks": "*",
+    "platforms": [
+        "espressif32",
+        "espressif8266",
+        "native"
+    ],
+    "license": "Apache-2.0",
+    "build": {
+        "srcFilter": [
+            "+<*.h>",
+            "+<*.c>",
+            "+<*.cpp>"
+        ]
+    }
+}
